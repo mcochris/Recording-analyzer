@@ -2,6 +2,6 @@ This is a BASH shell script that analyzes an audio file for peak level, noise fl
 
 Usage: ./recording_analyzer.sh <audio_file>
 
-Example: ./recording_analyzer.sh recording.wav
+Example: ./recording-analyzer.sh recording.wav
 
 Requirements: ffmpeg, awk, grep, printf, seq, basename, cat
