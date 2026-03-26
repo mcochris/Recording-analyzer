@@ -20,7 +20,7 @@ Requirements: mktemp ffmpeg awk grep printf seq basename cat tput
 
 The script uses ffmpeg to analyze the audio file and extract various statistics
 about the recording. The ffmpeg astats, loudnorm, aphasemeter, and ametadata
-filters are used to analyze the audio file
+filters are used to analyze the audio file.
 
 Peak level is the maximum absolute amplitude of the audio signal, expressed in
 decibels relative to full scale (dBFS). A value of 0 dBFS represents the
