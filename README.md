@@ -1,6 +1,6 @@
 This is a BASH shell script that analyzes an audio file for peak level, noise floor, dynamic range, crest factor, stereo correlation, and loudness.
 
-Usage: ./recording_analyzer.sh <audio_file>
+Usage: ./recording-analyzer.sh <audio_file>
 
 Example: ./recording-analyzer.sh recording.wav
 
