@@ -28,8 +28,14 @@ readonly MAIN_SCRIPT="../recording-analyzer.sh"
 ANALYSIS_OUTPUT="$(mktemp)"
 readonly ANALYSIS_OUTPUT
 
+#
+# Run the recording analyzer script and capture its output
+#
 "$MAIN_SCRIPT" "$FILE" > "$ANALYSIS_OUTPUT"
 
+#
+# Extract and display the analysis results
+#
 LEFT_PEAK_LEVEL=$(grep --ignore-case "Peak level" "$ANALYSIS_OUTPUT" | sed --quiet 1p | cut -w --fields 4)
 readonly LEFT_PEAK_LEVEL
 echo "Left peak level: $LEFT_PEAK_LEVEL"
