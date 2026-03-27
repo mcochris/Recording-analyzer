@@ -1,6 +1,7 @@
 Audio Recording Analyzer
 
 Usage: recording-analyzer.sh <audio_file>
+
 Example: recording-analyzer.sh recording.wav
 
 This program is used to analyze an audio file and extract various statistics.
