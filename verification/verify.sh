@@ -1,5 +1,10 @@
 #!/usr/bin/env bash
 
+#
+# This script calls all the check.sh scripts in all the verification subdirectories
+# This script is manually run by the user.
+#
+
 #set -o xtrace
 set -o errexit
 set -o nounset
@@ -75,6 +80,7 @@ readonly MAIN_SCRIPT="../recording-analyzer.sh"
 
 ANALYSIS_OUTPUT="$(mktemp)"
 readonly ANALYSIS_OUTPUT
+trap 'rm -f "$ANALYSIS_OUTPUT" 2> /dev/null' EXIT
 
 #
 # Run the recording analyzer script and capture its output
@@ -82,7 +88,7 @@ readonly ANALYSIS_OUTPUT
 "$MAIN_SCRIPT" "$FILE" > "$ANALYSIS_OUTPUT"
 
 #
-# Extract and display the analysis results
+# Extract the analysis results
 #
 LEFT_PEAK_LEVEL=$(grep --ignore-case "Peak level" "$ANALYSIS_OUTPUT" | sed --quiet 1p | cut -w --fields 4)
 readonly LEFT_PEAK_LEVEL
@@ -131,3 +137,53 @@ debug "True peak: $TRUE_PEAK"
 LOUDNESS_RANGE=$(grep --ignore-case "Loudness range" "$ANALYSIS_OUTPUT" | cut -w --fields 4)
 readonly LOUDNESS_RANGE
 debug "Loudness range: $LOUDNESS_RANGE"
+
+#
+# Get list of all the verification subdirectories
+#
+VERIFICATION_DIRS=()
+while IFS= read -r -d '' dir; do
+	VERIFICATION_DIRS+=("$dir")
+done < <(find . -mindepth 1 -maxdepth 1 -type d -print0)
+readonly VERIFICATION_DIRS
+
+debug "Found ${#VERIFICATION_DIRS[@]} verification subdirectories: ${VERIFICATION_DIRS[*]}"
+
+# Loop through each verification subdirectory and run its checks
+# Each subdirectory should contain a script named "check.sh" that performs
+# specific checks on the extracted metrics. The check.sh script should return
+# a non-zero exit code if any of the checks fail.
+
+if [[ "$DEBUG" == true ]]; then
+	echo "Debug mode enabled. Running checks with debug output."
+	DEBUG_OPTION="--debug"
+else
+	DEBUG_OPTION=""
+fi
+
+for dir in "${VERIFICATION_DIRS[@]}"; do
+	readonly check_script="$dir/check.sh"
+	if [[ -x "$check_script" ]]; then
+		debug "Running checks in $dir using $check_script"
+		(
+			cd "$dir"
+			"$check_script" \
+				"$DEBUG_OPTION" \
+				"$FILE" \
+				--left-peak-level "$LEFT_PEAK_LEVEL" \
+				--right-peak-level "$RIGHT_PEAK_LEVEL" \
+				--left-noise-floor "$LEFT_NOISE_FLOOR" \
+				--right-noise-floor "$RIGHT_NOISE_FLOOR" \
+				--left-dynamic-range "$LEFT_DYNAMIC_RANGE" \
+				--right-dynamic-range "$RIGHT_DYNAMIC_RANGE" \
+				--left-crest-factor "$LEFT_CREST_FACTOR" \
+				--right-crest-factor "$RIGHT_CREST_FACTOR" \
+				--average-phase "$AVERAGE_PHASE" \
+				--integrated-loudness "$INTEGRATED_LOUDNESS" \
+				--true-peak "$TRUE_PEAK" \
+				--loudness-range "$LOUDNESS_RANGE"
+		)
+	else
+		echo "Warning: No executable check.sh found in $dir, skipping checks for this directory"
+	fi
+done
