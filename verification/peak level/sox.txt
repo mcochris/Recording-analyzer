@@ -1,0 +1,6 @@
+read PEAK_LEVEL
+sox input.wav -n remix 1 stat |
+
+sox input.wav -n remix 2 stat	# provides right channel Maximum amplitude in dB
+
+To convert dB to dBFS, use the following formula: dBFS = 20 * log10(max_amplitude)
