@@ -34,7 +34,12 @@ Analyzes an audio file for:
 - Stereo correlation (if stereo)
 - Loudness (EBU R128: Integrated, True Peak, Loudness Range)
 
-Requirements: mktemp ffmpeg awk grep printf seq basename cat tput
+Requirements: mktemp, ffmpeg, awk, grep, printf, seq, basename, cat, and tput must
+be available in the system. These are usually automatically included in most
+Unix-like systems.
+
+Optional tools: sox, libsox-fmt-mp3, and python3 with the soundfile and numpy
+packages need to be available in the system to run the optional verification scripts.
 
 The script uses ffmpeg to analyze the audio file and extract various statistics
 about the recording. The ffmpeg astats, loudnorm, aphasemeter, and ametadata
