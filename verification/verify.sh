@@ -138,20 +138,14 @@ debug "Found ${#VERIFICATION_DIRS[@]} verification subdirectories: ${VERIFICATIO
 
 # Loop through each verification subdirectory and run its checks
 # Each subdirectory should contain a script named "check.sh" that performs
-# specific checks on the extracted metrics. The check.sh script should return
-# a non-zero exit code if any of the checks fail.
-
-#if [[ -n "$DEBUG" ]]; then
-#	DEBUG_OPTION="--debug"
-#else
-#	DEBUG_OPTION=""
-#fi
+# specific checks on the extracted metrics.
 
 for dir in "${VERIFICATION_DIRS[@]}"; do
 	if [[ -x "$dir/check.sh" ]]; then
 		debug "Running $dir/check.sh"
 		cd "$dir"
 		./check.sh "$DEBUG" --audio-file "$FILE" --left-peak-level "$LEFT_PEAK_LEVEL" --right-peak-level "$RIGHT_PEAK_LEVEL" --left-noise-floor "$LEFT_NOISE_FLOOR" --right-noise-floor "$RIGHT_NOISE_FLOOR" --left-dynamic-range "$LEFT_DYNAMIC_RANGE" --right-dynamic-range "$RIGHT_DYNAMIC_RANGE" --left-crest-factor "$LEFT_CREST_FACTOR" --right-crest-factor "$RIGHT_CREST_FACTOR" --average-phase "$AVERAGE_PHASE" 	--integrated-loudness "$INTEGRATED_LOUDNESS" --true-peak "$TRUE_PEAK" --loudness-range "$LOUDNESS_RANGE"
+		cd ..
 	else
 		echo "Warning: No executable $dir/check.sh, skipping checks for this directory"
 	fi
