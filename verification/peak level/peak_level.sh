@@ -16,6 +16,7 @@ trap 'echo "ERROR: line $LINENO command \"$BASH_COMMAND\" exited with status $?"
 Usage: $0 --left-peak-level <value> --right-peak-level <value> <audio_file>
 Optional: --debug"; exit 1; }
 
+# shellcheck disable=SC1091
 source ../common.sh
 
 THRESHOLD=$(cat threshold.txt)
@@ -25,11 +26,11 @@ AUDIO_FILE=""
 LEFT_PEAK_LEVEL=""
 RIGHT_PEAK_LEVEL=""
 DEBUG=""
-EXIT_CODE=0
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
         -d|--debug)
+			# shellcheck disable=SC2034
             DEBUG="$1"
             shift
             ;;
