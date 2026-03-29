@@ -14,7 +14,8 @@ trap 'echo "ERROR: line $LINENO command \"$BASH_COMMAND\" exited with status $?"
 
 [[ $# -eq 0 ]] && { echo "Usage: $0 <audio_file>"; exit 1; }
 
-readonly VERSION="1.0.0 (2026-03-27)"
+source ./common.sh
+
 readonly HELP="
 Audio Recording Analyzer Verification Script
 Usage: verify.sh <audio_file>
@@ -29,29 +30,23 @@ and producing expected results.
 Optional flags:
   -d, --debug       Enable debug output
   -h, --help        Show this help message and exit
-  -v, --version     Show version information and exit
 "
 
 # -----------------------------
 # Parse optional flags
 # -----------------------------
 FILE=""
-DEBUG=false
-SHOW_HELP=false
-SHOW_VERSION=false
+DEBUG=""
+SHOW_HELP=""
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
         -d|--debug)
-            DEBUG=true
+            DEBUG="$1"
             shift
             ;;
         -h|--help)
-            SHOW_HELP=true
-            shift
-            ;;
-        -v|--version)
-            SHOW_VERSION=true
+            SHOW_HELP="true"
             shift
             ;;
         *)
@@ -61,22 +56,14 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-[[ $SHOW_HELP = true ]] && { echo "$HELP"; exit 0; }
-[[ $SHOW_VERSION = true ]] && { echo "$0 version $VERSION"; exit 0; }
+[[ -n "$SHOW_HELP" ]] && { echo "$HELP"; exit 0; }
 
 [[ -z "$FILE" ]] && { echo "Error: No audio file specified"; echo "$HELP"; exit 1; }
 [[ -e "$FILE" ]] || { echo "Error: Audio file does not exist: $FILE"; exit 1; }
 [[ -f "$FILE" ]] || { echo "Error: Audio file is not a regular file: $FILE"; exit 1; }
 [[ -r "$FILE" ]] || { echo "Error: Audio file is not readable: $FILE"; exit 1; }
 
-debug() {
-	[[ "$DEBUG" == true ]] && echo "DEBUG[${BASH_LINENO[0]}]: $*"
-	return 0
-}
-
-readonly MAIN_SCRIPT="../recording-analyzer.sh"
-
-[[ -x "$MAIN_SCRIPT" ]] || { echo "Error: Main script not found or not executable: $MAIN_SCRIPT"; exit 1; }
+[[ -x "$RECORDING_ANALYZER_SCRIPT" ]] || { echo "Error: Main script not found or not executable: $RECORDING_ANALYZER_SCRIPT"; exit 1; }
 
 ANALYSIS_OUTPUT="$(mktemp)"
 readonly ANALYSIS_OUTPUT
@@ -85,7 +72,7 @@ trap 'rm -f "$ANALYSIS_OUTPUT" 2> /dev/null' EXIT
 #
 # Run the recording analyzer script and capture its output
 #
-"$MAIN_SCRIPT" "$FILE" > "$ANALYSIS_OUTPUT"
+"$RECORDING_ANALYZER_SCRIPT" "$FILE" > "$ANALYSIS_OUTPUT"
 
 #
 # Extract the analysis results
@@ -154,36 +141,18 @@ debug "Found ${#VERIFICATION_DIRS[@]} verification subdirectories: ${VERIFICATIO
 # specific checks on the extracted metrics. The check.sh script should return
 # a non-zero exit code if any of the checks fail.
 
-if [[ "$DEBUG" == true ]]; then
-	echo "Debug mode enabled. Running checks with debug output."
-	DEBUG_OPTION="--debug"
-else
-	DEBUG_OPTION=""
-fi
+#if [[ -n "$DEBUG" ]]; then
+#	DEBUG_OPTION="--debug"
+#else
+#	DEBUG_OPTION=""
+#fi
 
 for dir in "${VERIFICATION_DIRS[@]}"; do
-	readonly check_script="$dir/check.sh"
-	if [[ -x "$check_script" ]]; then
-		debug "Running checks in $dir using $check_script"
-		(
-			cd "$dir"
-			"$check_script" \
-				"$DEBUG_OPTION" \
-				"$FILE" \
-				--left-peak-level "$LEFT_PEAK_LEVEL" \
-				--right-peak-level "$RIGHT_PEAK_LEVEL" \
-				--left-noise-floor "$LEFT_NOISE_FLOOR" \
-				--right-noise-floor "$RIGHT_NOISE_FLOOR" \
-				--left-dynamic-range "$LEFT_DYNAMIC_RANGE" \
-				--right-dynamic-range "$RIGHT_DYNAMIC_RANGE" \
-				--left-crest-factor "$LEFT_CREST_FACTOR" \
-				--right-crest-factor "$RIGHT_CREST_FACTOR" \
-				--average-phase "$AVERAGE_PHASE" \
-				--integrated-loudness "$INTEGRATED_LOUDNESS" \
-				--true-peak "$TRUE_PEAK" \
-				--loudness-range "$LOUDNESS_RANGE"
-		)
+	if [[ -x "$dir/check.sh" ]]; then
+		debug "Running $dir/check.sh"
+		cd "$dir"
+		./check.sh "$DEBUG" --audio-file "$FILE" --left-peak-level "$LEFT_PEAK_LEVEL" --right-peak-level "$RIGHT_PEAK_LEVEL" --left-noise-floor "$LEFT_NOISE_FLOOR" --right-noise-floor "$RIGHT_NOISE_FLOOR" --left-dynamic-range "$LEFT_DYNAMIC_RANGE" --right-dynamic-range "$RIGHT_DYNAMIC_RANGE" --left-crest-factor "$LEFT_CREST_FACTOR" --right-crest-factor "$RIGHT_CREST_FACTOR" --average-phase "$AVERAGE_PHASE" 	--integrated-loudness "$INTEGRATED_LOUDNESS" --true-peak "$TRUE_PEAK" --loudness-range "$LOUDNESS_RANGE"
 	else
-		echo "Warning: No executable check.sh found in $dir, skipping checks for this directory"
+		echo "Warning: No executable $dir/check.sh, skipping checks for this directory"
 	fi
 done
