@@ -29,22 +29,22 @@ def main():
     results = {}
     within_threshold = True
 
-    for i, ch in enumerate(['Left', 'Right']):
+    for i, ch in enumerate(['left', 'right']):
         peak_linear = np.max(np.abs(data[:, i]))
         peak_dbfs = 20 * np.log10(peak_linear)
         results[ch] = peak_dbfs
 
-    expected = {'Left': expected_left, 'Right': expected_right}
+    expected = {'left': expected_left, 'right': expected_right}
 
-    for ch in ['Left', 'Right']:
+    for ch in ['left', 'right']:
         calculated = results[ch]
         exp = expected[ch]
         diff = abs(calculated - exp)
         status = "OK" if diff <= threshold else "FAIL"
         if diff > threshold:
-            print(f"{sys.argv[0]}: python {ch} peak level is not within threshold, calculated {calculated} dBFS, expected {exp} dBFS, threshold {threshold} dB")
+            print(f"{sys.argv[0]}: Python {ch} peak level is not within threshold, calculated {calculated} dBFS, expected {exp} dBFS, threshold {threshold} dB")
         else:
-            print(f"{sys.argv[0]}: python {ch} peak level is within threshold")
+            print(f"{sys.argv[0]}: Python {ch} peak level is within threshold")
 
 if __name__ == '__main__':
     main()
