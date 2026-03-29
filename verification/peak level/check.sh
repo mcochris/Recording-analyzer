@@ -16,6 +16,7 @@ trap 'echo "ERROR: line $LINENO command \"$BASH_COMMAND\" exited with status $?"
 Usage: $0 --left-peak-level <value> --right-peak-level <value> <audio_file>
 Optional: --debug"; exit 1; }
 
+# shellcheck disable=SC1091
 source ../common.sh
 
 AUDIO_FILE=""
