@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 
+# shellcheck disable=SC2034
 readonly RECORDING_ANALYZER_SCRIPT="../recording-analyzer.sh"
 
 debug() {
