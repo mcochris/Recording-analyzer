@@ -63,7 +63,7 @@ done
 [[ -f "$FILE" ]] || { echo "Error: Audio file is not a regular file: $FILE"; exit 1; }
 [[ -r "$FILE" ]] || { echo "Error: Audio file is not readable: $FILE"; exit 1; }
 
-[[ -x "$RECORDING_ANALYZER_SCRIPT" ]] || { echo "Error: Main script not found or not executable: $RECORDING_ANALYZER_SCRIPT"; exit 1; }
+[[ -x "$RECORDING_ANALYZER_PROGRAM" ]] || { echo "Error: Main script not found or not executable: $RECORDING_ANALYZER_PROGRAM"; exit 1; }
 
 ANALYSIS_OUTPUT="$(mktemp)"
 readonly ANALYSIS_OUTPUT
@@ -72,7 +72,7 @@ trap 'rm -f "$ANALYSIS_OUTPUT" 2> /dev/null' EXIT
 #
 # Run the recording analyzer script and capture its output
 #
-"$RECORDING_ANALYZER_SCRIPT" "$FILE" > "$ANALYSIS_OUTPUT"
+"$RECORDING_ANALYZER_PROGRAM" "$FILE" > "$ANALYSIS_OUTPUT"
 
 #
 # Extract the analysis results
@@ -144,7 +144,7 @@ for dir in "${VERIFICATION_DIRS[@]}"; do
 	if [[ -x "$dir/check.sh" ]]; then
 		debug "Running $dir/check.sh"
 		cd "$dir"
-		./check.sh "$DEBUG" --audio-file "$FILE" --left-peak-level "$LEFT_PEAK_LEVEL" --right-peak-level "$RIGHT_PEAK_LEVEL" --left-noise-floor "$LEFT_NOISE_FLOOR" --right-noise-floor "$RIGHT_NOISE_FLOOR" --left-dynamic-range "$LEFT_DYNAMIC_RANGE" --right-dynamic-range "$RIGHT_DYNAMIC_RANGE" --left-crest-factor "$LEFT_CREST_FACTOR" --right-crest-factor "$RIGHT_CREST_FACTOR" --average-phase "$AVERAGE_PHASE" 	--integrated-loudness "$INTEGRATED_LOUDNESS" --true-peak "$TRUE_PEAK" --loudness-range "$LOUDNESS_RANGE"
+		./check.sh "$DEBUG" --audio-file "$FILE" --left-peak-level "$LEFT_PEAK_LEVEL" --right-peak-level "$RIGHT_PEAK_LEVEL" --left-noise-floor "$LEFT_NOISE_FLOOR" --right-noise-floor "$RIGHT_NOISE_FLOOR" --left-dynamic-range "$LEFT_DYNAMIC_RANGE" --right-dynamic-range "$RIGHT_DYNAMIC_RANGE" --left-crest-factor "$LEFT_CREST_FACTOR" --right-crest-factor "$RIGHT_CREST_FACTOR" --average-phase "$AVERAGE_PHASE" --integrated-loudness "$INTEGRATED_LOUDNESS" --true-peak "$TRUE_PEAK" --loudness-range "$LOUDNESS_RANGE"
 		cd ..
 	else
 		echo "Warning: No executable $dir/check.sh, skipping checks for this directory"
