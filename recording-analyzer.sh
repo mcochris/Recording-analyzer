@@ -1,7 +1,5 @@
 #!/usr/bin/env bash
 
-readonly VERSION="1.0.0 (2026-03-26)"
-
 #set -o xtrace
 set -o errexit
 set -o nounset
