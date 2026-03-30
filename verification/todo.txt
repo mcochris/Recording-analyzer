@@ -1,0 +1,9 @@
+- check if setting the threshold to 0 or a negative number breaks a verification program
+
+- check if the SoX mp3 libsox-fmt-mp3 extension is installed
+
+- check if the python modules used are installed
+
+- should the threshold # be a percentage like 1 for 1%, 10 for 10%? Divide % by 100 to get tolerance. 100% needs to be set to 0 tolerance
+
+- allow comments in threshold file
