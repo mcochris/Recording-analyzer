@@ -19,9 +19,6 @@ Optional: --debug"; exit 1; }
 # shellcheck disable=SC1091
 source ../common.sh
 
-THRESHOLD=$(cat threshold.txt)
-readonly THRESHOLD
-
 AUDIO_FILE=""
 LEFT_PEAK_LEVEL=""
 RIGHT_PEAK_LEVEL=""
@@ -49,13 +46,11 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
+THRESHOLD=$(get_threshold)
 debug "Starting peak level check for $AUDIO_FILE"
 debug "Left peak level: $LEFT_PEAK_LEVEL"
 debug "Right peak level: $RIGHT_PEAK_LEVEL"
-
-[[ -z "$THRESHOLD" ]] && { echo "$0: Error: THRESHOLD variable is not set"; exit 1; }
-is_number "$THRESHOLD" || { echo "$0: Error: THRESHOLD variable is not a valid number"; exit 1; }
-debug "THRESHOLD: $THRESHOLD"
+debug "Threshold: ${THRESHOLD}%"
 
 [[ -z "$AUDIO_FILE" ]] && { echo "$0: Error: No audio file specified"; exit 1; }
 [[ -e "$AUDIO_FILE" ]] || { echo "$0: Error: Audio file does not exist: $AUDIO_FILE"; exit 1; }
@@ -81,7 +76,7 @@ if [[ -n "$LEFT_PEAK_LEVEL" ]]; then
 	debug "Calculated dBFS for the left channel: $dBFS"
 
 	if ! within_range "$dBFS" "$LEFT_PEAK_LEVEL"; then
-		echo "$0: SoX left peak level is not within threshold, calculated $dBFS dBFS, expected $LEFT_PEAK_LEVEL dBFS, threshold $THRESHOLD dB"
+		echo "$0: SoX left peak level is not within threshold, calculated $dBFS dBFS, expected $LEFT_PEAK_LEVEL dBFS, threshold ${THRESHOLD}%"
 	else
 		echo "$0: SoX left peak level is within threshold"
 	fi
@@ -101,7 +96,7 @@ if [[ -n "$RIGHT_PEAK_LEVEL" ]]; then
 	debug "Calculated dBFS for the right channel: $dBFS"
 
 	if ! within_range "$dBFS" "$RIGHT_PEAK_LEVEL"; then
-		echo "$0: SoX right peak level is not within threshold, calculated $dBFS dBFS, expected $RIGHT_PEAK_LEVEL dBFS, threshold $THRESHOLD dB"
+		echo "$0: SoX right peak level is not within threshold, calculated $dBFS dBFS, expected $RIGHT_PEAK_LEVEL dBFS, threshold ${THRESHOLD}%"
 	else
 		echo "$0: SoX right peak level is within threshold"
 	fi
