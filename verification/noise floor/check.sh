@@ -13,7 +13,7 @@ set -o errtrace
 trap 'echo "ERROR: line $LINENO command \"$BASH_COMMAND\" exited with status $?" >&2' ERR
 
 [[ $# -eq 0 ]] && { echo "Normally, this script is called by verify.sh
-Usage: $0 --left-peak-level <value> --right-peak-level <value> --audio-file <audio_file>
+Usage: $0 --left-noise-floor <value> --right-noise-floor <value> <audio_file>
 Optional: --debug"; exit 1; }
 
 # shellcheck disable=SC1091
@@ -73,4 +73,4 @@ else
     debug "Right noise floor not specified"
 fi
 
-python3 ./noise_floor.py "$AUDIO_FILE" "$LEFT_NOISE_FLOOR" "$RIGHT_NOISE_FLOOR"
+python3 ./noise_floor.py "$AUDIO_FILE" "$LEFT_NOISE_FLOOR" "$RIGHT_NOISE_FLOOR" "$(get_threshold)" "$DEBUG"
