@@ -3,7 +3,9 @@
 # soundfile library. It computes the minimum RMS value over a series of windows
 # and converts it to dBFS.
 #
-# Usage: noise_floor.py <audio_file> <left_noise_floor> <right_noise_floor>
+# Usage: noise_floor.py <audio_file> <left_noise_floor> <right_noise_floor> <threshold_%>
+#
+# threshold is expressed as a percentage of the calculated noise floor (e.g. 5 = 5%)
 #
 # This script is normally called from check.sh
 #
@@ -13,12 +15,7 @@ import numpy as np
 import sys
 import os
 
-def read_threshold(threshold_file='threshold.txt'):
-    with open(threshold_file, 'r') as f:
-        return float(f.read().strip())
-
-def noise_floor(filename, expected_left, expected_right, window_ms=50):
-    threshold = read_threshold()
+def noise_floor(filename, expected_left, expected_right, threshold, debug, window_ms=50):
     data, samplerate = sf.read(filename)
     window_samples = int(samplerate * window_ms / 1000)
 
@@ -39,23 +36,30 @@ def noise_floor(filename, expected_left, expected_right, window_ms=50):
         min_rms = np.min(rms_values)
         calculated_dbfs = 20 * np.log10(min_rms)
         expected_dbfs = expected[i]
+        tolerance_dbfs = (threshold / 100.0) * abs(calculated_dbfs)
 
-        if abs(calculated_dbfs - expected_dbfs) <= threshold:
+        if debug:
+            print(
+                f"./{os.path.basename(sys.argv[0])}: Python {ch} debug: "
+                f"calculated={calculated_dbfs:.2f} dBFS, "
+                f"expected={expected_dbfs:.2f} dBFS, "
+                f"threshold={threshold:.1f}% (±{tolerance_dbfs:.2f} dB)"
+            )
+
+        if abs(calculated_dbfs - expected_dbfs) <= tolerance_dbfs:
             print(f"./{os.path.basename(sys.argv[0])}: Python {ch} noise floor is within threshold")
         else:
             print(
                 f"./{os.path.basename(sys.argv[0])}: Python {ch} noise floor is not within threshold, "
                 f"calculated noise floor {calculated_dbfs:.2f} dBFS, "
                 f"expected {expected_dbfs:.2f} dBFS, "
-                f"threshold {threshold:.2f} dBFS"
+                f"threshold {threshold:.1f}% (±{tolerance_dbfs:.2f} dB)"
             )
-
-if len(sys.argv) != 4:
-    print(f"Usage: {os.path.basename(sys.argv[0])} <audio_file> <left_noise_floor> <right_noise_floor>")
-    sys.exit(1)
 
 audio_file = sys.argv[1]
 left_noise_floor = float(sys.argv[2])
 right_noise_floor = float(sys.argv[3])
+threshold = float(sys.argv[4])
+debug = len(sys.argv) > 5 and sys.argv[5] in ('--debug', '-d')
 
-noise_floor(audio_file, left_noise_floor, right_noise_floor)
+noise_floor(audio_file, left_noise_floor, right_noise_floor, threshold, debug)
