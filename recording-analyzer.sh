@@ -13,7 +13,7 @@ done
 
 [[ $# -eq 0 ]] && { echo "Usage: $0 <audio_file>"; exit 1; }
 
-HELP=$(cat <<'EOF'
+HELP="
 Audio Recording Analyzer
 
 Usage: recording-analyzer.sh <audio_file>
@@ -25,19 +25,14 @@ recording, which can be useful for audio engineers, musicians, and anyone
 interested in understanding the technical aspects of their audio files.
 
 Analyzes an audio file for:
-- Peak level (dBFS)
-- Noise floor (dBFS)
-- Dynamic range (dB)
-- Crest factor
-- Stereo correlation (if stereo)
-- Loudness (EBU R128: Integrated, True Peak, Loudness Range)
+	- Peak level (dBFS)
+	- Noise floor (dBFS)
+	- Crest factor
+	- Stereo correlation (if stereo)
+	- Loudness (EBU R128: Integrated, True Peak, Loudness Range)
 
-Requirements: mktemp, ffmpeg, awk, grep, printf, seq, basename, cat, and tput must
-be available in the system. These are usually automatically included in most
-Unix-like systems.
-
-Optional tools: sox, libsox-fmt-mp3, and python3 with the soundfile and numpy
-packages need to be available in the system to run the optional verification scripts.
+Requirements: ffmpeg and awk must be available in the system. These are
+usually automatically included in most Unix-like systems.
 
 The script uses ffmpeg to analyze the audio file and extract various statistics
 about the recording. The ffmpeg astats, loudnorm, aphasemeter, and ametadata
@@ -49,9 +44,6 @@ maximum possible digital level, while negative values indicate levels below
 that. A peak level close to 0 dBFS may indicate potential clipping.
 
 Noise floor is the level of background noise in the recording in dBFS.
-
-Dynamic range is the difference in decibels between the peak level and the
-noise floor.
 
 Crest factor is the ratio of the peak level to the RMS (root mean square) level
 of the audio signal, which can provide insight into the transient characteristics
@@ -68,12 +60,15 @@ audio. The integrated loudness represents the overall loudness of the recording,
 the true peak indicates the maximum true peak level, and the loudness range
 represents the variation in loudness throughout the recording.
 
+Verification of the script's functionality can be done by running it against
+known audio files or using other audio analysis tools for cross-validation.
+See the verification directory in the GitHub repository for more details.
+
 https://github.com/mcochris/Recording-analyzer
-EOF
-)
+"
 
 FILE="$1"
-[[ "$FILE" == "-?" || "$FILE" == "-h" || "$FILE" == "--help" ]] && { echo "$HELP"; echo ""; exit 0; }
+[[ "$FILE" == "-?" || "$FILE" == "-h" || "$FILE" == "--help" ]] && { echo "$HELP"; exit 0; }
 [[ "$FILE" == "-v" || "$FILE" == "--version" ]] && { echo "recording-analyzer.sh version $VERSION"; exit 0; }
 [[ -e "$FILE" ]] || { echo "Error: File does not exist: $FILE"; exit 1; }
 [[ -f "$FILE" ]] || { echo "Error: File is not a regular file: $FILE"; exit 1; }
@@ -152,14 +147,14 @@ long_running_task() {
 
 		peak=$(get_stat "$ch" "Peak level dB")
 		noise=$(get_stat "$ch" "Noise floor dB")
-		dynrange=$(get_stat "$ch" "Dynamic range")
+#		dynrange=$(get_stat "$ch" "Dynamic range")
 		crest=$(get_stat "$ch" "Crest factor")
 
 		echo ""
 		echo "Channel $ch ($label):"
 		echo "  Peak Level:     ${peak:-N/A} dBFS"
 		echo "  Noise Floor:    ${noise:-N/A} dBFS"
-		echo "  Dynamic Range:  ${dynrange:-N/A} dB"
+#		echo "  Dynamic Range:  ${dynrange:-N/A} dB"
 		echo "  Crest Factor:   ${crest:-N/A}"
 	done
 
