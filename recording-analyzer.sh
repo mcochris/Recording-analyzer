@@ -61,7 +61,7 @@ the true peak indicates the maximum true peak level, and the loudness range
 represents the variation in loudness throughout the recording.
 
 Verification of the script's functionality can be done by running it against
-known audio files or using other audio analysis tools for cross-validation.
+known audio files and/or using other audio analysis tools for cross-validation.
 See the verification directory in the GitHub repository for more details.
 
 https://github.com/mcochris/Recording-analyzer
@@ -147,14 +147,12 @@ long_running_task() {
 
 		peak=$(get_stat "$ch" "Peak level dB")
 		noise=$(get_stat "$ch" "Noise floor dB")
-#		dynrange=$(get_stat "$ch" "Dynamic range")
 		crest=$(get_stat "$ch" "Crest factor")
 
 		echo ""
 		echo "Channel $ch ($label):"
 		echo "  Peak Level:     ${peak:-N/A} dBFS"
 		echo "  Noise Floor:    ${noise:-N/A} dBFS"
-#		echo "  Dynamic Range:  ${dynrange:-N/A} dB"
 		echo "  Crest Factor:   ${crest:-N/A}"
 	done
 
