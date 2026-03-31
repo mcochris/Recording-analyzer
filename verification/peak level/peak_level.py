@@ -39,9 +39,9 @@ def main():
 		exp = expected[ch]
 		diff_percent = abs(calculated - exp) / abs(exp) * 100
 		if diff_percent > threshold:
-			print(f"{sys.argv[0]}: Python {ch} peak level is not within threshold, calculated {calculated:.4f} dBFS, expected {exp:.4f} dBFS, difference {diff_percent:.2f}%, threshold {threshold}%")
+			print(f"Python {ch} peak level is not within threshold, calculated {calculated:.4f} dBFS, expected {exp:.4f} dBFS, difference {diff_percent:.2f}%, threshold {threshold}%")
 		else:
-			print(f"{sys.argv[0]}: Python {ch} peak level is within threshold ({diff_percent:.2f}% difference)")
+			print(f"Python {ch} peak level is within threshold ({diff_percent:.2f}% difference)")
 
 if __name__ == '__main__':
 	main()
