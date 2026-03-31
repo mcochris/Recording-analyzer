@@ -76,9 +76,9 @@ if [[ -n "$LEFT_PEAK_LEVEL" ]]; then
 	debug "Calculated dBFS for the left channel: $dBFS"
 
 	if ! within_range "$dBFS" "$LEFT_PEAK_LEVEL"; then
-		echo "$0: SoX left peak level is not within threshold, calculated $dBFS dBFS, expected $LEFT_PEAK_LEVEL dBFS, threshold ${THRESHOLD}%"
+		echo "SoX left peak level is not within threshold, calculated $dBFS dBFS, expected $LEFT_PEAK_LEVEL dBFS, threshold ${THRESHOLD}%"
 	else
-		echo "$0: SoX left peak level is within threshold"
+		echo "SoX left peak level is within threshold"
 	fi
 fi
 
@@ -96,8 +96,8 @@ if [[ -n "$RIGHT_PEAK_LEVEL" ]]; then
 	debug "Calculated dBFS for the right channel: $dBFS"
 
 	if ! within_range "$dBFS" "$RIGHT_PEAK_LEVEL"; then
-		echo "$0: SoX right peak level is not within threshold, calculated $dBFS dBFS, expected $RIGHT_PEAK_LEVEL dBFS, threshold ${THRESHOLD}%"
+		echo "SoX right peak level is not within threshold, calculated $dBFS dBFS, expected $RIGHT_PEAK_LEVEL dBFS, threshold ${THRESHOLD}%"
 	else
-		echo "$0: SoX right peak level is within threshold"
+		echo "SoX right peak level is within threshold"
 	fi
 fi
