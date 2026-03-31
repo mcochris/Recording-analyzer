@@ -165,7 +165,7 @@ long_running_task() {
 
 		PHASE=$(ffmpeg -hide_banner -i "$FILE" -af "aphasemeter=video=0,ametadata=print:file=-" -f null - 2>/dev/null \
 			  | grep 'lavfi.aphasemeter.phase' \
-			  | awk -F'=' '/lavfi.aphasemeter$2; n++ } END { if (n>0) printf "%.4f", sum/n; else print "N/A" }')
+			  | awk -F '=' '{ sum+=$2; n++ } END { if (n>0) printf "%.4f", sum/n; else print "N/A" }')
 
 		echo "  Average Phase:  ${PHASE:-N/A}"
 	fi
