@@ -16,4 +16,6 @@
 
 - check audio file suffix, don't try to process files we can't handle
 
-- run program on all my audio files as test
+- run main program on all my audio files as test
+
+- run verification on all my audio files as a test
