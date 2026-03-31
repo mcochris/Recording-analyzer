@@ -72,11 +72,6 @@ else
     debug "Right peak level not specified"
 fi
 
-if [[ -z "$LEFT_PEAK_LEVEL" && -z "$RIGHT_PEAK_LEVEL" ]]; then
-	debug "No peak levels specified, skipping peak level check"
-	exit 0
-fi
-
 ./peak_level.sh "$DEBUG" "$AUDIO_FILE" --left-peak-level "$LEFT_PEAK_LEVEL" --right-peak-level "$RIGHT_PEAK_LEVEL"
 
 python3 ./peak_level.py "$AUDIO_FILE" "$LEFT_PEAK_LEVEL" "$RIGHT_PEAK_LEVEL" "$(get_threshold)" "$DEBUG"
