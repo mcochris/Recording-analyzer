@@ -47,10 +47,10 @@ def noise_floor(filename, expected_left, expected_right, threshold, debug, windo
             )
 
         if abs(calculated_dbfs - expected_dbfs) <= tolerance_dbfs:
-            print(f"./{os.path.basename(sys.argv[0])}: Python {ch} noise floor is within threshold")
+            print(f"Python {ch} noise floor is within threshold")
         else:
             print(
-                f"./{os.path.basename(sys.argv[0])}: Python {ch} noise floor is not within threshold, "
+                f"Python {ch} noise floor is not within threshold, "
                 f"calculated noise floor {calculated_dbfs:.2f} dBFS, "
                 f"expected {expected_dbfs:.2f} dBFS, "
                 f"threshold {threshold:.1f}% (±{tolerance_dbfs:.2f} dB)"
