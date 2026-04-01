@@ -6,11 +6,6 @@
 #
 
 #set -o xtrace
-set -o errexit
-set -o nounset
-set -o pipefail
-set -o errtrace
-trap 'echo "ERROR: line $LINENO command \"$BASH_COMMAND\" exited with status $?" >&2' ERR
 
 [[ $# -eq 0 ]] && { echo "Normally, this script is called by check.sh
 Usage: $0 --audio-file <audio_file> --integrated-loudness <value>
@@ -51,17 +46,18 @@ debug "THRESHOLD: $THRESHOLD"
 
 check_audio_file
 
-[[ -z "$INTEGRATED_LOUDNESS" ]] && { echo "$0: Error: No integrated loudness specified"; exit 1; }
+[[ -z "$INTEGRATED_LOUDNESS" ]] && { echo "Error: No integrated loudness specified"; exit 1; }
 
-is_number "$INTEGRATED_LOUDNESS" || { echo "$0: Error: Integrated loudness is not a valid number"; exit 1; }
+is_number "$INTEGRATED_LOUDNESS" || { echo "Error: integrated loudness is not a valid number"; exit 1; }
 
 if which -s bs1770gain; then
 	debug "Checking integrated loudness for $AUDIO_FILE with bs1770gain"
-	tempfile=$(mktemp)
-	bs1770gain "$AUDIO_FILE" > "$tempfile" 2> /dev/null || { echo "ERROR: bs1770gain failed to analyze the audio file"; rm -f "$tempfile"; exit 1; }
+	TMPFILE=$(get_tempfile) || { echo "ERROR: Failed to create temporary file"; exit 1; }
 
-	loudness=$(grep --ignore-case --max-count=1 "Integrated (momentary mean):" "$tempfile" | cut -w --fields 5)
-	rm -f "$tempfile"
+	bs1770gain "$AUDIO_FILE" > "$TMPFILE" 2> /dev/null || { echo "ERROR: bs1770gain failed to analyze the audio file"; rm -f "$TMPFILE"; exit 1; }
+
+	loudness=$(grep --ignore-case --max-count=1 "Integrated (momentary mean):" "$TMPFILE" | cut -w --fields 5)
+	rm -f "$TMPFILE"
 
 	debug "Finished checking integrated loudness for $AUDIO_FILE with bs1770gain, loudness: $loudness"
 
@@ -76,11 +72,12 @@ fi
 
 if which -s loudgain; then
 	debug "Checking integrated loudness for $AUDIO_FILE with loudgain"
-	tempfile=$(mktemp)
-	loudgain "$AUDIO_FILE" > "$tempfile" 2> /dev/null || { echo "ERROR: loudgain failed to analyze the audio file"; rm -f "$tempfile"; exit 1; }
+	TMPFILE=$(get_tempfile) || { echo "ERROR: Failed to create temporary file"; exit 1; }
 
-	loudness=$(grep --ignore-case --max-count=1 "loudness:" "$tempfile" | cut -w --fields 3)
-	rm -f "$tempfile"
+	loudgain "$AUDIO_FILE" > "$TMPFILE" 2> /dev/null || { echo "ERROR: loudgain failed to analyze the audio file"; rm -f "$TMPFILE"; exit 1; }
+
+	loudness=$(grep --ignore-case --max-count=1 "loudness:" "$TMPFILE" | cut -w --fields 3)
+	rm -f "$TMPFILE"
 
 	debug "Finished checking integrated loudness for $AUDIO_FILE with loudgain, loudness: $loudness"
 
