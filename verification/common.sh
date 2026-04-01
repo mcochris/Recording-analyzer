@@ -2,12 +2,34 @@
 #
 # This file contains common functions and variables used by the recording analyzer tests.
 #
+# This script is sourced by the test scripts in the verification directory.
+# It provides common functions and variables for the tests.
+#
+
+set -o errexit
+set -o nounset
+set -o pipefail
+set -o errtrace
+trap 'echo "ERROR: line $LINENO command \"$BASH_COMMAND\" exited with status $?" >&2' ERR
 
 # shellcheck disable=SC2034
 readonly RECORDING_ANALYZER_PROGRAM="../recording-analyzer.sh"
 
-debug() {
-	# This function prints debug messages if the DEBUG environment variable is set.
+#
+# Set up a custom temporary directory for the tests to avoid conflicts with other processes.
+#
+function get_tempfile() {
+	readonly TMPDIR_NAME="recording-analyzer"
+	TMPDIR_LOCATION=$(dirname "$(mktemp --quiet --dry-run)") || { echo "ERROR: Failed to get OS's temporary directory"; exit 1; }
+	readonly TMPDIR_LOCATION
+	[[ -d "$TMPDIR_LOCATION/$TMPDIR_NAME" ]] || mkdir "$TMPDIR_LOCATION/$TMPDIR_NAME" || { echo "ERROR: Failed to create temporary directory in $TMPDIR_LOCATION/$TMPDIR_NAME"; exit 1; }
+	TMPFILE=$(mktemp --tmpdir="$TMPDIR_LOCATION/$TMPDIR_NAME") || { echo "ERROR: Failed to create temporary file"; exit 1; }
+	readonly TMPFILE
+	echo "$TMPFILE"
+}
+
+function debug() {
+	# This function prints debug messages if the DEBUG variable is set.
 	[[ -n "$DEBUG" ]] && echo "$0 DEBUG[${BASH_LINENO[0]}]: $*"
 	return 0
 }
@@ -18,16 +40,6 @@ function is_number() {
     [[ "$1" =~ ^[+-]?([0-9]+\.?[0-9]*|\.[0-9]+)([eE][+-]?[0-9]+)?$ ]]
 }
 
-# Deprecated, replaced by test_threshold() which is more robust and handles edge cases better.
-#function within_range() {
-	# This function checks if the difference between two numbers is within a specified threshold
-	# Usage: within_range <value1> <value2>
-	# Returns 0 (true) if the values are within the threshold, or 1 (false) if they are not
-#    local a="$1"
-#    local b="$2"
-#    awk "BEGIN { exit !(($a - $b)^2 <= $THRESHOLD^2) }"
-#}
-
 function get_threshold() {
 	# This function reads the threshold value from threshold.txt, validates it, and returns it as a integer percentage.
 	# If the file is missing, unreadable, or contains an invalid value, it defaults to 10%.
@@ -35,7 +47,7 @@ function get_threshold() {
 	THRESHOLD=$(sed --quiet 1p threshold.txt 2> /dev/null)
 	[[ -z "$THRESHOLD" ]] && { echo "WARNING: invalid threshold.txt, defaulting to 10%"; return 10; }
 	PERCENT=$(echo "$THRESHOLD" | grep --only-matching --extended-regexp "^(100|[1-9][0-9]|[0-9])%$")
-	[[ -z "$PERCENT" ]] && { echo "WARNING: invalid threshold.txt , defaulting to 10%"; return 10; }
+	[[ -z "$PERCENT" ]] && { echo "WARNING: invalid threshold.txt, defaulting to 10%"; return 10; }
 	THRESHOLD="${PERCENT//%/}"
 	[[ -z "$THRESHOLD" ]] && { echo "WARNING: invalid threshold.txt, defaulting to 10%"; return 10; }
 	echo "$THRESHOLD"
