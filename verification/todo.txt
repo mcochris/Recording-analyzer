@@ -20,4 +20,8 @@
 
 - run verification on all my audio files as a test
 
-- test on WSL, cygwin, freebsd
+- test on WSL, cygwin, FreeBSD
+
+- can pgms run against NAS files?
+
+- does "find . -mindepth 1" work on FreeBSD?
