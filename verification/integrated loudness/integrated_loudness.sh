@@ -8,7 +8,7 @@
 #set -o xtrace
 
 [[ $# -eq 0 ]] && { echo "Normally, this script is called by check.sh
-Usage: $0 --audio-file <audio_file> --integrated-loudness <value>
+Usage: $0 --integrated-loudness <value> <audio_file>
 Optional: --debug"; exit 1; }
 
 # shellcheck disable=SC1091
