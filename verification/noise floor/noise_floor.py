@@ -3,7 +3,7 @@
 # soundfile library. It computes the minimum RMS value over a series of windows
 # and converts it to dBFS.
 #
-# Usage: noise_floor.py <audio_file> <left_noise_floor> <right_noise_floor> <threshold_%>
+# Usage: noise_floor.py [--debug] --left-noise-floor <value> --right-noise-floor <value> --threshold <value> <audio_file>
 #
 # threshold is expressed as a percentage of the calculated noise floor (e.g. 5 = 5%)
 #
@@ -14,6 +14,7 @@ import soundfile as sf
 import numpy as np
 import sys
 import os
+import argparse
 
 def noise_floor(filename, expected_left, expected_right, threshold, debug, window_ms=50):
     data, samplerate = sf.read(filename)
@@ -56,10 +57,13 @@ def noise_floor(filename, expected_left, expected_right, threshold, debug, windo
                 f"threshold {threshold:.1f}% (±{tolerance_dbfs:.2f} dB)"
             )
 
-audio_file = sys.argv[1]
-left_noise_floor = float(sys.argv[2])
-right_noise_floor = float(sys.argv[3])
-threshold = float(sys.argv[4])
-debug = len(sys.argv) > 5 and sys.argv[5] in ('--debug', '-d')
+parser = argparse.ArgumentParser(			description="Compare noise floor results for a given audio file.")
+parser.add_argument("--debug",				action="store_true", help="Enable debug output")
+parser.add_argument("--left-noise-floor",	required=True, type=float, help="Expected left channel noise floor")
+parser.add_argument("--right-noise-floor",	required=True, type=float, help="Expected right channel noise floor")
+parser.add_argument("--threshold", 			required=True, type=float, help="Acceptable percentage difference between calculated and expected values")
+parser.add_argument("audiofile",			type=str, help="Path to the audio file")
 
-noise_floor(audio_file, left_noise_floor, right_noise_floor, threshold, debug)
+args = parser.parse_args()
+
+noise_floor(args.audiofile, args.left_noise_floor, args.right_noise_floor, args.threshold, args.debug)
