@@ -20,12 +20,12 @@ readonly RECORDING_ANALYZER_PROGRAM="../recording-analyzer.sh"
 #
 function get_tempfile() {
 	readonly TMPDIR_NAME="recording-analyzer"
-	TMPDIR_LOCATION=$(dirname "$(mktemp --quiet --dry-run)") || { echo "ERROR: Failed to get OS's temporary directory"; exit 1; }
-	readonly TMPDIR_LOCATION
-	[[ -d "$TMPDIR_LOCATION/$TMPDIR_NAME" ]] || mkdir "$TMPDIR_LOCATION/$TMPDIR_NAME" || { echo "ERROR: Failed to create temporary directory in $TMPDIR_LOCATION/$TMPDIR_NAME"; exit 1; }
-	TMPFILE=$(mktemp --tmpdir="$TMPDIR_LOCATION/$TMPDIR_NAME") || { echo "ERROR: Failed to create temporary file"; exit 1; }
-	readonly TMPFILE
-	echo "$TMPFILE"
+	tmpdir_location=$(dirname "$(mktemp --quiet --dry-run)") || { echo "ERROR: Failed to get OS's temporary directory"; exit 1; }
+	readonly tmpdir_location
+	[[ -d "$tmpdir_location/$TMPDIR_NAME" ]] || mkdir "$tmpdir_location/$TMPDIR_NAME" || { echo "ERROR: Failed to create temporary directory in $tmpdir_location/$TMPDIR_NAME"; exit 1; }
+	tmpfile=$(mktemp --tmpdir="$tmpdir_location/$TMPDIR_NAME") || { echo "ERROR: Failed to create temporary file"; exit 1; }
+	readonly tmpfile
+	echo "$tmpfile"
 }
 
 function debug() {
@@ -44,13 +44,13 @@ function get_threshold() {
 	# This function reads the threshold value from threshold.txt, validates it, and returns it as a integer percentage.
 	# If the file is missing, unreadable, or contains an invalid value, it defaults to 10%.
 	[[ -r "threshold.txt" ]] || { echo "WARNING: threshold.txt not found or not readable, defaulting to 10%"; return 10; }
-	THRESHOLD=$(sed --quiet 1p threshold.txt 2> /dev/null)
-	[[ -z "$THRESHOLD" ]] && { echo "WARNING: invalid threshold.txt, defaulting to 10%"; return 10; }
-	PERCENT=$(echo "$THRESHOLD" | grep --only-matching --extended-regexp "^(100|[1-9][0-9]|[0-9])%$")
-	[[ -z "$PERCENT" ]] && { echo "WARNING: invalid threshold.txt, defaulting to 10%"; return 10; }
-	THRESHOLD="${PERCENT//%/}"
-	[[ -z "$THRESHOLD" ]] && { echo "WARNING: invalid threshold.txt, defaulting to 10%"; return 10; }
-	echo "$THRESHOLD"
+	threshold=$(sed --quiet 1p threshold.txt 2> /dev/null)
+	[[ -z "$threshold" ]] && { echo "WARNING: invalid threshold.txt, defaulting to 10%"; return 10; }
+	percent=$(echo "$threshold" | grep --only-matching --extended-regexp "^(100|[1-9][0-9]|[0-9])%$")
+	[[ -z "$percent" ]] && { echo "WARNING: invalid threshold.txt, defaulting to 10%"; return 10; }
+	threshold="${percent//%/}"
+	[[ -z "$threshold" ]] && { echo "WARNING: invalid threshold.txt, defaulting to 10%"; return 10; }
+	echo "$threshold"
 }
 
 function within_range() {
@@ -65,14 +65,14 @@ function within_range() {
 		echo "ERROR: Non-numeric value provided to within_range: '$1' and '$2'"
 		return 1
 	fi
-	THRESHOLD=$(get_threshold)
-	debug "Comparing values: $1 and $2 with threshold: ${THRESHOLD}%"
+	threshold=$(get_threshold)
+	debug "Comparing values: $1 and $2 with threshold: ${threshold}%"
 	result=$(bc -l <<< "
 		diff = $1 - $2
 		if (diff < 0) diff = -diff
 		avg = ($1 + $2) / 2
 		if (avg < 0) avg = -avg
-		if (avg == 0) { 0 } else { diff / avg * 100 < $THRESHOLD }
+		if (avg == 0) { 0 } else { diff / avg * 100 < $threshold}
 	")
 
 	if [[ "$result" -eq 1 ]]; then
@@ -86,10 +86,10 @@ function check_audio_file() {
 	# This function checks if the specified audio file exists, is a regular file, and is readable.
 	# It returns 0 (true) if the file is valid, or 1 (false) if it is not.
 	[[ $# -ne 1 ]] && { echo "ERROR: check_audio_file requires exactly 1 argument, but got $#"; exit 1; }
-	local AUDIO_FILE="$1"
-	[[ -z "$AUDIO_FILE" ]] && { echo "$0: Error: No audio file specified"; exit 1; }
-	[[ -e "$AUDIO_FILE" ]] || { echo "$0: Error: Audio file does not exist: $AUDIO_FILE"; exit 1; }
-	[[ -f "$AUDIO_FILE" ]] || { echo "$0: Error: Audio file is not a regular file: $AUDIO_FILE"; exit 1; }
-	[[ -r "$AUDIO_FILE" ]] || { echo "$0: Error: Audio file is not readable: $AUDIO_FILE"; exit 1; }
+	local file="$1"
+	[[ -z "$file" ]] && { echo "$0: Error: No audio file specified"; exit 1; }
+	[[ -e "$file" ]] || { echo "$0: Error: Audio file does not exist: $file"; exit 1; }
+	[[ -f "$file" ]] || { echo "$0: Error: Audio file is not a regular file: $file"; exit 1; }
+	[[ -r "$file" ]] || { echo "$0: Error: Audio file is not readable: $file"; exit 1; }
 	return 0
 }
