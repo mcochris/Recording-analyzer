@@ -85,6 +85,8 @@ function within_range() {
 function check_audio_file() {
 	# This function checks if the specified audio file exists, is a regular file, and is readable.
 	# It returns 0 (true) if the file is valid, or 1 (false) if it is not.
+	[[ $# -ne 1 ]] && { echo "ERROR: check_audio_file requires exactly 1 argument, but got $#"; exit 1; }
+	local AUDIO_FILE="$1"
 	[[ -z "$AUDIO_FILE" ]] && { echo "$0: Error: No audio file specified"; exit 1; }
 	[[ -e "$AUDIO_FILE" ]] || { echo "$0: Error: Audio file does not exist: $AUDIO_FILE"; exit 1; }
 	[[ -f "$AUDIO_FILE" ]] || { echo "$0: Error: Audio file is not a regular file: $AUDIO_FILE"; exit 1; }
