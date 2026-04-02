@@ -6,6 +6,7 @@
 #
 
 #set -o xtrace
+
 [[ $# -eq 0 ]] && { echo "Usage: $0 <audio_file>"; exit 1; }
 
 source ./common.sh
@@ -29,7 +30,7 @@ Optional flags:
 # -----------------------------
 # Parse optional flags
 # -----------------------------
-FILE=""
+AUDIO_FILE=""
 DEBUG=""
 SHOW_HELP=""
 
@@ -50,13 +51,15 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
+readonly AUDIO_FILE DEBUG SHOW_HELP
+
 [[ -n "$SHOW_HELP" ]] && { echo "$HELP"; exit 0; }
 
 check_audio_file "$AUDIO_FILE"
 
 [[ -x "$RECORDING_ANALYZER_PROGRAM" ]] || { echo "Error: Main script not found or not executable: $RECORDING_ANALYZER_PROGRAM"; exit 1; }
 
-ANALYSIS_OUTPUT="$(mktemp)"
+ANALYSIS_OUTPUT="$(get_tempfile)"
 readonly ANALYSIS_OUTPUT
 trap 'rm -f "$ANALYSIS_OUTPUT" 2> /dev/null' EXIT
 
@@ -116,22 +119,11 @@ LOUDNESS_RANGE=$(grep --ignore-case "Loudness range" "$ANALYSIS_OUTPUT" | cut -w
 readonly LOUDNESS_RANGE
 debug "Loudness range: $LOUDNESS_RANGE"
 
-#
-# Get list of all the verification subdirectories
-#
-VERIFICATION_DIRS=()
-while IFS= read -r -d '' dir; do
-	VERIFICATION_DIRS+=("$dir")
-done < <(find . -mindepth 1 -maxdepth 1 -type d -print0)
-readonly VERIFICATION_DIRS
-
-debug "Found ${#VERIFICATION_DIRS[@]} verification subdirectories: ${VERIFICATION_DIRS[*]}"
-
 # Loop through each verification subdirectory and run its checks
 # Each subdirectory should contain a script named "check.sh" that performs
 # specific checks on the extracted metrics.
 
-for dir in "${VERIFICATION_DIRS[@]}"; do
+for dir in "peak level" "noise floor" "dynamic range" "crest factor" "average_phase" "integrated loudness" "true peak" "loudness range"; do
 	if [[ -x "$dir/check.sh" ]]; then
 		debug "Running $dir/check.sh"
 		cd "$dir" || { echo "ERROR: Failed to change directory to \"$dir\""; exit 1; }
