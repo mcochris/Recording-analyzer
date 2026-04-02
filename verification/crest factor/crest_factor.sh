@@ -6,14 +6,9 @@
 #
 
 #set -o xtrace
-set -o errexit
-set -o nounset
-set -o pipefail
-set -o errtrace
-trap 'echo "ERROR: line $LINENO command \"$BASH_COMMAND\" exited with status $?" >&2' ERR
 
-[[ $# -eq 0 ]] && { echo "Normally, this script is called by check.sh
-Usage: $0 --audio-file <audio_file> --left-crest-factor <value> --right-crest-factor <value>
+[[ $# -eq 0 ]] && { echo "Normally, this script is called by verify.sh
+Usage: $0 --left-crest-factor <value> --right-crest-factor <value> <audio_file>
 Optional: --debug"; exit 1; }
 
 # shellcheck disable=SC1091
@@ -39,11 +34,8 @@ while [[ $# -gt 0 ]]; do
             RIGHT_CREST_FACTOR="$2"
             shift 2
             ;;
-        --audio-file)
-            AUDIO_FILE="$2"
-            shift 2
-            ;;
         *)
+            AUDIO_FILE="$1"
             shift
             ;;
     esac
@@ -55,20 +47,13 @@ debug "Left crest factor: $LEFT_CREST_FACTOR"
 debug "Right crest factor: $RIGHT_CREST_FACTOR"
 debug "Threshold: ${THRESHOLD}%"
 
-[[ -z "$AUDIO_FILE" ]] && { echo "$0: Error: No audio file specified"; exit 1; }
-[[ -e "$AUDIO_FILE" ]] || { echo "$0: Error: Audio file does not exist: $AUDIO_FILE"; exit 1; }
-[[ -f "$AUDIO_FILE" ]] || { echo "$0: Error: Audio file is not a regular file: $AUDIO_FILE"; exit 1; }
-[[ -r "$AUDIO_FILE" ]] || { echo "$0: Error: Audio file is not readable: $AUDIO_FILE"; exit 1; }
+readonly AUDIO_FILE LEFT_CREST_FACTOR RIGHT_CREST_FACTOR THRESHOLD
 
-[[ -z "$LEFT_CREST_FACTOR" && -z "$RIGHT_CREST_FACTOR" ]] && { echo "$0: Error: No crest factors specified"; exit 1; }
-[[ -z "$LEFT_CREST_FACTOR" ]] && { echo "$0: Error: No left crest factor specified"; exit 1; }
-[[ -z "$RIGHT_CREST_FACTOR" ]] && { echo "$0: Error: No right crest factor specified"; exit 1; }
-
-is_number "$LEFT_CREST_FACTOR" || { echo "$0: Error: Left crest factor is not a valid number"; exit 1; }
-is_number "$RIGHT_CREST_FACTOR" || { echo "$0: Error: Right crest factor is not a valid number"; exit 1; }
+check_audio_file "$AUDIO_FILE"
 
 if [[ -n "$LEFT_CREST_FACTOR" ]]; then
 	debug "Checking left crest factor for $AUDIO_FILE"
+	is_number "$LEFT_CREST_FACTOR" || { echo "$0: Error: Left crest factor is not a valid number"; exit 1; }
 	read -r crest_factor < <(sox "$AUDIO_FILE" -n remix 1 stats 2>&1 |
 		grep --ignore-case "Crest factor" |
 		sed --quiet 1p |
@@ -85,6 +70,7 @@ fi
 
 if [[ -n "$RIGHT_CREST_FACTOR" ]]; then
 	debug "Checking right crest factor for $AUDIO_FILE"
+	is_number "$RIGHT_CREST_FACTOR" || { echo "$0: Error: Right crest factor is not a valid number"; exit 1; }
 	read -r crest_factor < <(sox "$AUDIO_FILE" -n remix 2 stats 2>&1|
 		grep --ignore-case "Crest factor" |
 		sed --quiet 1p |
