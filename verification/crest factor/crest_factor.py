@@ -3,7 +3,7 @@
 # soundfile library to the expected values provided as arguments. It checks if the
 # calculated crest factors are within a specified threshold of the expected values.
 #
-# Usage: crest_factor.py --audio-file <audio_file> --left-crest-factor <left_crest_factor> --right-crest-factor <right_crest_factor> --threshold <threshold> [--debug|-d]
+# Usage: crest_factor.py  [--debug|-d] --left-crest-factor <left_crest_factor> --right-crest-factor <right_crest_factor> --threshold <threshold> <audio_file>
 #
 # This script is normally called from check.sh
 #
@@ -14,14 +14,14 @@ import argparse
 
 def main():
 	parser = argparse.ArgumentParser(			description="Compare crest factor results for a given audio file.")
-	parser.add_argument("--audio-file",			required=True, type=str, help="Path to the audio file")
 	parser.add_argument("--left-crest-factor",	required=True, type=float, help="Expected left channel crest factor")
 	parser.add_argument("--right-crest-factor",	required=True, type=float, help="Expected right channel crest factor")
 	parser.add_argument("--threshold", 			required=True, type=float, help="Acceptable percentage difference between calculated and expected values")
+	parser.add_argument("audiofile",			type=str, help="Path to the audio file")
 
 	args = parser.parse_args()
 
-	data, sr = sf.read(args.audio_file)
+	data, sr = sf.read(args.audiofile)
 
 	# Handle mono vs stereo
 	if data.ndim == 1:
