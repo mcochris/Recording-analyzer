@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 #
-# This script compares the crest factor results for a given audio file with SoX
+# This script compares the integrated loudness results for a given audio file
 # This script is called by check.sh
 #
 
