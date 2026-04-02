@@ -7,10 +7,16 @@
 		"civis",
 		"cnorm",
 		"dbfs",
+		"ebur",
+		"HVAC",
 		"lavfi",
+		"loudgain",
 		"loudnorm",
 		"LUFS",
 		"newaxis",
-		"samplerate"
+		"numpy",
+		"peakiness",
+		"samplerate",
+		"soundfile"
 	]
 }
