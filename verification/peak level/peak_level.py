@@ -3,23 +3,26 @@
 # soundfile library to the expected values provided as arguments. It checks if the
 # calculated peak levels are within a specified threshold of the expected values.
 #
-# Usage: peak_level.py <audio_file> <left_peak_level> <right_peak_level> <threshold> [--debug|-d]
+# Usage: peak_level.py [--debug|-d] --left-peak-level <value> --right-peak-level <value> --threshold <value> <audio_file>
 #
 # This script is normally called from check.sh
 #
 
+import argparse
 import soundfile as sf
 import numpy as np
 import sys
 
 def main():
-	audio_file = sys.argv[1]
-	expected_left = float(sys.argv[2])
-	expected_right = float(sys.argv[3])
-	threshold = int(sys.argv[4])
-	debug = len(sys.argv) > 5 and sys.argv[5] in ('--debug', '-d')
+	parser = argparse.ArgumentParser(			description="Compare peak level results for a given audio file.")
+	parser.add_argument("--right-peak-level",	required=True, type=float, help="Expected right channel peak level")
+	parser.add_argument("--left-peak-level",	required=True, type=float, help="Expected left channel peak level")
+	parser.add_argument("--threshold", 			required=True, type=float, help="Acceptable percentage difference between calculated and expected values")
+	parser.add_argument("audiofile",			type=str, help="Path to the audio file")
 
-	data, samplerate = sf.read(audio_file)
+	args = parser.parse_args()
+
+	data, samplerate = sf.read(args.audiofile)
 
 	results = {}
 
@@ -28,7 +31,9 @@ def main():
 		peak_dbfs = 20 * np.log10(peak_linear)
 		results[ch] = peak_dbfs
 
-	expected = {'left': expected_left, 'right': expected_right}
+	expected = {'left': args.left_peak_level, 'right': args.right_peak_level}
+	threshold = args.threshold
+	debug = args.debug
 
 	if debug:
 		print(f"{sys.argv[0]}: [debug] expected   left={expected['left']:.4f} dBFS, right={expected['right']:.4f} dBFS")
