@@ -7,7 +7,7 @@ set -o pipefail
 set -o errtrace
 trap 'echo "ERROR: line $LINENO command \"$BASH_COMMAND\" exited with status $?" >&2' ERR
 
-for cmd in mktemp ffmpeg awk grep printf seq basename cat tput; do
+for cmd in bash mktemp ffmpeg awk printf seq tput; do
 	command -v "$cmd" >/dev/null 2>&1 || { echo "Error: Required command not found: $cmd" >&2; exit 1; }
 done
 
@@ -80,6 +80,7 @@ RESULTS_FILE="$(mktemp)"
 spinner() {
     local pid=$1
     local message=${2:-"Working"}
+	# shellcheck disable=SC1003
 	local frames=('-' '\' '|' '/')
     local i=0
 
@@ -97,7 +98,7 @@ spinner() {
     tput cnorm
 }
 
-long_running_task() {
+function long_running_task() {
 	# --- Run astats once and capture output ---
 	ASTATS=$(ffmpeg -hide_banner -i "$FILE" -af "astats" -f null - 2>&1)
 
