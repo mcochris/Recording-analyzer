@@ -8,8 +8,11 @@
 		"cnorm",
 		"dbfs",
 		"ebur",
+		"flac",
 		"HVAC",
+		"intersample",
 		"lavfi",
+		"libsox",
 		"loudgain",
 		"loudnorm",
 		"LUFS",
@@ -17,6 +20,7 @@
 		"numpy",
 		"peakiness",
 		"samplerate",
+		"scriptable",
 		"soundfile"
 	]
 }
