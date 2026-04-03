@@ -9,6 +9,7 @@
 
 [[ $# -eq 0 ]] && { echo "Usage: $0 <audio_file>"; exit 1; }
 
+# shellcheck disable=SC1091
 source ./common.sh
 
 readonly HELP="
@@ -71,51 +72,51 @@ trap 'rm -f "$ANALYSIS_OUTPUT" 2> /dev/null' EXIT
 #
 # Extract the analysis results
 #
-LEFT_PEAK_LEVEL=$(grep --ignore-case "Peak level" "$ANALYSIS_OUTPUT" | sed --quiet 1p | cut -w --fields 4)
+LEFT_PEAK_LEVEL=$(grep --ignore-case "Peak level" "$ANALYSIS_OUTPUT" | sed --quiet 1p | awk '{print $3}')
 readonly LEFT_PEAK_LEVEL
 debug "Left peak level: $LEFT_PEAK_LEVEL"
 
-RIGHT_PEAK_LEVEL=$(grep --ignore-case "Peak level" "$ANALYSIS_OUTPUT" | sed --quiet 2p | cut -w --fields 4)
+RIGHT_PEAK_LEVEL=$(grep --ignore-case "Peak level" "$ANALYSIS_OUTPUT" | sed --quiet 2p | awk '{print $3}')
 readonly RIGHT_PEAK_LEVEL
 debug "Right peak level: $RIGHT_PEAK_LEVEL"
 
-LEFT_NOISE_FLOOR=$(grep --ignore-case "Noise floor" "$ANALYSIS_OUTPUT" | sed --quiet 1p | cut -w --fields 4)
+LEFT_NOISE_FLOOR=$(grep --ignore-case "Noise floor" "$ANALYSIS_OUTPUT" | sed --quiet 1p | awk '{print $3}')
 readonly LEFT_NOISE_FLOOR
 debug "Left noise floor: $LEFT_NOISE_FLOOR"
 
-RIGHT_NOISE_FLOOR=$(grep --ignore-case "Noise floor" "$ANALYSIS_OUTPUT" | sed --quiet 2p | cut -w --fields 4)
+RIGHT_NOISE_FLOOR=$(grep --ignore-case "Noise floor" "$ANALYSIS_OUTPUT" | sed --quiet 2p | awk '{print $3}')
 readonly RIGHT_NOISE_FLOOR
 debug "Right noise floor: $RIGHT_NOISE_FLOOR"
 
-LEFT_DYNAMIC_RANGE=$(grep --ignore-case "Dynamic range" "$ANALYSIS_OUTPUT" | sed --quiet 1p | cut -w --fields 4)
+LEFT_DYNAMIC_RANGE=$(grep --ignore-case "Dynamic range" "$ANALYSIS_OUTPUT" | sed --quiet 1p | awk '{print $3}')
 readonly LEFT_DYNAMIC_RANGE
 debug "Left dynamic range: $LEFT_DYNAMIC_RANGE"
 
-RIGHT_DYNAMIC_RANGE=$(grep --ignore-case "Dynamic range" "$ANALYSIS_OUTPUT" | sed --quiet 2p | cut -w --fields 4)
+RIGHT_DYNAMIC_RANGE=$(grep --ignore-case "Dynamic range" "$ANALYSIS_OUTPUT" | sed --quiet 2p | awk '{print $3}')
 readonly RIGHT_DYNAMIC_RANGE
 debug "Right dynamic range: $RIGHT_DYNAMIC_RANGE"
 
-LEFT_CREST_FACTOR=$(grep --ignore-case "Crest factor" "$ANALYSIS_OUTPUT" | sed --quiet 1p | cut -w --fields 4)
+LEFT_CREST_FACTOR=$(grep --ignore-case "Crest factor" "$ANALYSIS_OUTPUT" | sed --quiet 1p | awk '{print $3}')
 readonly LEFT_CREST_FACTOR
 debug "Left crest factor: $LEFT_CREST_FACTOR"
 
-RIGHT_CREST_FACTOR=$(grep --ignore-case "Crest factor" "$ANALYSIS_OUTPUT" | sed --quiet 2p | cut -w --fields 4)
+RIGHT_CREST_FACTOR=$(grep --ignore-case "Crest factor" "$ANALYSIS_OUTPUT" | sed --quiet 2p | awk '{print $3}')
 readonly RIGHT_CREST_FACTOR
 debug "Right crest factor: $RIGHT_CREST_FACTOR"
 
-AVERAGE_PHASE=$(grep --ignore-case "Average phase" "$ANALYSIS_OUTPUT" | cut -w --fields 4)
+AVERAGE_PHASE=$(grep --ignore-case "Average phase" "$ANALYSIS_OUTPUT" | awk '{print $3}')
 readonly AVERAGE_PHASE
 debug "Average phase: $AVERAGE_PHASE"
 
-INTEGRATED_LOUDNESS=$(grep --ignore-case "Integrated loudness" "$ANALYSIS_OUTPUT" | cut -w --fields 4)
+INTEGRATED_LOUDNESS=$(grep --ignore-case "Integrated loudness" "$ANALYSIS_OUTPUT" | awk '{print $3}')
 readonly INTEGRATED_LOUDNESS
 debug "Integrated loudness: $INTEGRATED_LOUDNESS"
 
-TRUE_PEAK=$(grep --ignore-case "True peak" "$ANALYSIS_OUTPUT" | cut -w --fields 4)
+TRUE_PEAK=$(grep --ignore-case "True peak" "$ANALYSIS_OUTPUT" | awk '{print $3}')
 readonly TRUE_PEAK
 debug "True peak: $TRUE_PEAK"
 
-LOUDNESS_RANGE=$(grep --ignore-case "Loudness range" "$ANALYSIS_OUTPUT" | cut -w --fields 4)
+LOUDNESS_RANGE=$(grep --ignore-case "Loudness range" "$ANALYSIS_OUTPUT" | awk '{print $3}')
 readonly LOUDNESS_RANGE
 debug "Loudness range: $LOUDNESS_RANGE"
 
