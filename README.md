@@ -66,19 +66,17 @@ Analyze every FLAC file in the current directory:
 
 ```bash
 for f in *.flac; do
-  [ -e "$f" ] || continue
+  [ -f "$f" ] || continue
   recording-analyzer.sh "$f"
-  echo
 done
 ```
 
 Analyze all supported files recursively and save the output to a report:
 
 ```bash
-find . -type f \( -iname "*.flac" -o -iname "*.wav" -o -iname "*.mp3" \) -print0 |
+find . -type f \( -iname "*.flac" -o -iname "*.wav" -o -iname "*.mp3" -o -iname "*.aac" -o -iname "*.m4a" \) -print0 |
 while IFS= read -r -d '' f; do
   recording-analyzer.sh "$f"
-  echo
 done | tee analysis-report.txt
 ```
 
