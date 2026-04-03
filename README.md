@@ -126,7 +126,12 @@ Loudness (EBU R128):
 Audio peak level is the highest instantaneous amplitude or loudest point in an audio signal, measured in decibels relative to full scale (dBFS). Does not include intersample peaks. It represents the maximum transient peak, not the average loudness. Ensuring peaks remain below is crucial to prevent digital clipping (distortion).
 
 **Noise Floor (dBFS)**
-Minimum RMS level observed over the analysis window. This reflects the lowest measured signal energy in the file and should not be interpreted as true system noise or microphone self-noise. `-inf dBFS` indicates digital silence or values below numerical precision.
+The noise floor in audio is the sum of all unwanted ambient sounds (HVAC,
+traffic) and electronic hiss (preamps, interference) present in a recording
+space or signal chain when no intended sound is being made. It represents
+the baseline "silence" of a system; a lower noise floor allows for greater
+dynamic range, while a high noise floor can make recordings sound
+unprofessional. `-inf dBFS` indicates digital silence or values below numerical precision.
 
 **Crest Factor (dB)**
 Crest factor in audio is the ratio of a signal's peak amplitude to its average
