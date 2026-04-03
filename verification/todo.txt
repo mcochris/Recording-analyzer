@@ -8,7 +8,7 @@
 
 - allow comments in threshold file (DONE, not allowed)
 
-- add readme's to each verification directory
+- add readme's to each verification directory (DONE)
 
 - add test files to each verification directory
 
