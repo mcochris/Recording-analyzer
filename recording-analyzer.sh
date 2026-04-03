@@ -46,17 +46,17 @@ function spinner() {
     local i=0
 
     # Hide cursor
-    tput civis
+    tput civis 1>&2
 
     while kill -0 "$pid" 2>/dev/null; do
-        printf "\r%s... %s" "$message" "${frames[$i]}"
+        printf "\r%s... %s" "$message" "${frames[$i]}" 1>&2
         i=$(( (i + 1) % ${#frames[@]} ))
         sleep 0.1
     done
 
     # Clear the spinner line and restore cursor
-    printf "\r\033[K"
-    tput cnorm
+    printf "\r\033[K" 1>&2
+    tput cnorm 1>&2
 }
 
 function long_running_task() {
@@ -143,7 +143,7 @@ function long_running_task() {
 	echo "  Integrated Loudness:  ${INPUT_I:-N/A} LUFS"
 	echo "  True Peak:            ${INPUT_TP:-N/A} dBTP"
 	echo "  Loudness Range:       ${INPUT_LRA:-N/A} LU"
-} > "$RESULTS_FILE"
+} > "$RESULTS_FILE" 2> /dev/null
 
 # Run task in background, capture PID, spin until done
 long_running_task &
