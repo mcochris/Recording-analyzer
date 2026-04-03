@@ -67,8 +67,7 @@ Analyze every FLAC file in the current directory:
 ```bash
 for f in *.flac; do
   [ -e "$f" ] || continue
-  echo "===== $f ====="
-  ./recording-analyzer.sh "$f"
+  recording-analyzer.sh "$f"
   echo
 done
 ```
@@ -78,8 +77,7 @@ Analyze all supported files recursively and save the output to a report:
 ```bash
 find . -type f \( -iname "*.flac" -o -iname "*.wav" -o -iname "*.mp3" \) -print0 |
 while IFS= read -r -d '' f; do
-  echo "===== $f ====="
-  ./recording-analyzer.sh "$f"
+  recording-analyzer.sh "$f"
   echo
 done | tee analysis-report.txt
 ```
