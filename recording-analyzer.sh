@@ -7,7 +7,7 @@ set -o pipefail
 set -o errtrace
 trap 'echo "ERROR: line $LINENO command \"$BASH_COMMAND\" exited with status $?" >&2' ERR
 
-for cmd in bash mktemp ffmpeg awk printf seq tput; do
+for cmd in ffmpeg awk seq tput; do
 	command -v "$cmd" >/dev/null 2>&1 || { echo "Error: Required command not found: $cmd" >&2; exit 1; }
 done
 
