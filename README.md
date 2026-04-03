@@ -114,7 +114,7 @@ Loudness (EBU R128):
 ## 🔍 Comparison to Other Tools
 
 | Tool | Purpose | Strengths | Limitations |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | Recording Analyzer | Quick file-level metrics | Fast, scriptable, concise summary | Not a full acoustic measurement suite |
 | REW | Room and system measurement | Detailed graphs and acoustic tools | Not focused on batch file analysis |
 | DR Meter | Music DR scoring | Simple and familiar | Narrower scope |
@@ -191,7 +191,7 @@ a preferred range of 5–10 LU for consistency.
 
 See methodology and verification details here:
 
-https://github.com/mcochris/Recording-analyzer/blob/main/verification/readme.txt
+<https://github.com/mcochris/Recording-analyzer/blob/main/verification/readme.txt>
 
 ## 💬 Feedback
 
