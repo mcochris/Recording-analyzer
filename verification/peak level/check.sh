@@ -12,7 +12,7 @@ Usage: $0 --left-peak-level <value> --right-peak-level <value> <audio_file>
 Optional: --debug"; exit 1; }
 
 # shellcheck disable=SC1091
-source ../common.sh
+source ../common.sh || { echo "ERROR: Failed to source common.sh"; exit 1; }
 
 AUDIO_FILE=""
 DEBUG=""
@@ -40,11 +40,13 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
+THRESHOLD=$(get_threshold)
 debug "Starting peak level check for $AUDIO_FILE"
 debug "Left peak level: $LEFT_PEAK_LEVEL"
 debug "Right peak level: $RIGHT_PEAK_LEVEL"
+debug "Threshold: ${THRESHOLD}%"
 
-readonly AUDIO_FILE DEBUG LEFT_PEAK_LEVEL RIGHT_PEAK_LEVEL
+readonly AUDIO_FILE DEBUG LEFT_PEAK_LEVEL RIGHT_PEAK_LEVEL THRESHOLD
 
 check_audio_file "$AUDIO_FILE"
 
@@ -66,4 +68,4 @@ fi
 
 ./peak_level.sh "$DEBUG" --left-peak-level "$LEFT_PEAK_LEVEL" --right-peak-level "$RIGHT_PEAK_LEVEL" "$AUDIO_FILE"
 
-python3 ./peak_level.py "$DEBUG" --left-peak-level "$LEFT_PEAK_LEVEL" --right-peak-level "$RIGHT_PEAK_LEVEL" --threshold "$(get_threshold)" "$AUDIO_FILE"
+python3 ./peak_level.py --left-peak-level "$LEFT_PEAK_LEVEL" --right-peak-level "$RIGHT_PEAK_LEVEL" --threshold "$THRESHOLD" "$AUDIO_FILE"
