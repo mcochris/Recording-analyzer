@@ -52,9 +52,8 @@ def noise_floor(filename, expected_left, expected_right, threshold, debug, windo
         else:
             print(
                 f"Python {ch} noise floor is not within threshold, "
-                f"calculated noise floor {calculated_dbfs:.2f} dBFS, "
-                f"expected {expected_dbfs:.2f} dBFS, "
-                f"threshold {threshold:.1f}% (±{tolerance_dbfs:.2f} dB)"
+                f"calculated {calculated_dbfs:.2f} dBFS, "
+                f"expected {expected_dbfs:.2f} dBFS"
             )
 
 parser = argparse.ArgumentParser(			description="Compare noise floor results for a given audio file.")
