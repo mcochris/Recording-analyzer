@@ -49,11 +49,7 @@ debug "Threshold: ${THRESHOLD}%"
 
 readonly AUDIO_FILE LEFT_NOISE_FLOOR RIGHT_NOISE_FLOOR THRESHOLD
 
-echo ""
-header="Checking noise floor for $AUDIO_FILE with threshold ${THRESHOLD}%"
-echo "$header"
-printf '=%.0s' $(seq 1 ${#header})
-echo ""
+print_header "Checking noise floor for $(basename "$AUDIO_FILE") with threshold ${THRESHOLD}%"
 
 check_audio_file "$AUDIO_FILE"
 

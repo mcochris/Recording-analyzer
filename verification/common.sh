@@ -93,3 +93,11 @@ function check_audio_file() {
 	[[ -r "$file" ]] || { echo "$0: Error: Audio file is not readable: $file"; exit 1; }
 	return 0
 }
+
+function print_header() {
+	echo ""
+	header="$1"
+	echo "$header"
+	printf '=%.0s' $(seq 1 ${#header})
+	echo ""
+}

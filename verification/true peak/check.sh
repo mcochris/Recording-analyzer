@@ -42,11 +42,7 @@ debug "Threshold: ${THRESHOLD}%"
 
 readonly TRUE_PEAK AUDIO_FILE DEBUG THRESHOLD
 
-echo ""
-header="Checking true peak for $AUDIO_FILE with threshold ${THRESHOLD}%"
-echo "$header"
-printf '=%.0s' $(seq 1 ${#header})
-echo ""
+print_header "Checking true peak for $(basename "$AUDIO_FILE") with threshold ${THRESHOLD}%"
 
 check_audio_file "$AUDIO_FILE"
 

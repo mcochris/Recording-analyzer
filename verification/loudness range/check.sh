@@ -42,11 +42,7 @@ debug "Threshold: ${THRESHOLD}%"
 
 readonly LOUDNESS_RANGE AUDIO_FILE DEBUG THRESHOLD
 
-echo ""
-header="Checking loudness range for $AUDIO_FILE with threshold ${THRESHOLD}%"
-echo "$header"
-printf '=%.0s' $(seq 1 ${#header})
-echo ""
+print_header "Checking loudness range for $(basename "$AUDIO_FILE") with threshold ${THRESHOLD}%"
 
 check_audio_file "$AUDIO_FILE"
 
