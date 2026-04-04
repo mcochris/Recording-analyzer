@@ -14,6 +14,7 @@ import argparse
 
 def main():
 	parser = argparse.ArgumentParser(			description="Compare crest factor results for a given audio file.")
+	parser.add_argument("--debug",				action="store_true", help="Enable debug output")
 	parser.add_argument("--left-crest-factor",	required=True, type=float, help="Expected left channel crest factor")
 	parser.add_argument("--right-crest-factor",	required=True, type=float, help="Expected right channel crest factor")
 	parser.add_argument("--threshold", 			required=True, type=float, help="Acceptable percentage difference between calculated and expected values")
