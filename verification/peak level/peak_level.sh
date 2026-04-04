@@ -59,7 +59,7 @@ if [[ -n "$LEFT_PEAK_LEVEL" ]]; then
 	read -r max_amplitude < <(sox "$AUDIO_FILE" -n remix 1 stat 2>&1 |
 		grep --ignore-case "Maximum amplitude" |
 		sed --quiet 1p |
-		cut -w --fields 3)
+		awk '{print $2}')
 
 	debug "SoX reads a Max amplitude of $max_amplitude for the left channel"
 
@@ -80,7 +80,7 @@ if [[ -n "$RIGHT_PEAK_LEVEL" ]]; then
 	read -r max_amplitude < <(sox "$AUDIO_FILE" -n remix 2 stat 2>&1|
 		grep --ignore-case "Maximum amplitude" |
 		sed --quiet 1p |
-		cut -w --fields 3)
+		awk '{print $2}')
 
 	debug "SoX reads a Max amplitude of $max_amplitude for the right channel"
 
