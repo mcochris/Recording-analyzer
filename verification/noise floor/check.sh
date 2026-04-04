@@ -12,7 +12,7 @@ Usage: $0 --left-noise-floor <value> --right-noise-floor <value> <audio_file>
 Optional: --debug"; exit 1; }
 
 # shellcheck disable=SC1091
-source ../common.sh
+source ../common.sh || { echo "ERROR: Failed to source common.sh"; exit 1; }
 
 AUDIO_FILE=""
 DEBUG=""
@@ -45,7 +45,7 @@ debug "Starting noise floor check for $AUDIO_FILE"
 debug "Left noise floor: $LEFT_NOISE_FLOOR"
 debug "Right noise floor: $RIGHT_NOISE_FLOOR"
 
-readonly AUDIO_FILE DEBUG LEFT_NOISE_FLOOR RIGHT_NOISE_FLOOR
+readonly AUDIO_FILE LEFT_NOISE_FLOOR RIGHT_NOISE_FLOOR
 
 check_audio_file "$AUDIO_FILE"
 
@@ -63,4 +63,4 @@ else
     debug "Right noise floor not specified"
 fi
 
-python3 ./noise_floor.py "$DEBUG" --left-noise-floor "$LEFT_NOISE_FLOOR" --right-noise-floor "$RIGHT_NOISE_FLOOR" --threshold "$(get_threshold)" "$AUDIO_FILE"
+python3 ./noise_floor.py --left-noise-floor "$LEFT_NOISE_FLOOR" --right-noise-floor "$RIGHT_NOISE_FLOOR" --threshold "$(get_threshold)" "$AUDIO_FILE"
