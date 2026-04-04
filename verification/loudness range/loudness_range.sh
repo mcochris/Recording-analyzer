@@ -12,7 +12,7 @@ Usage: $0 --loudness-range <value> <audio_file>
 Optional: --debug"; exit 1; }
 
 # shellcheck disable=SC1091
-source ../common.sh
+source ../common.sh || { echo "ERROR: Failed to source common.sh"; exit 1; }
 
 AUDIO_FILE=""
 LOUDNESS_RANGE=""
@@ -55,7 +55,7 @@ if which -s loudgain; then
 
 	loudgain "$AUDIO_FILE" > "$TMPFILE" 2> /dev/null || { echo "ERROR: loudgain failed to analyze the audio file"; rm -f "$TMPFILE"; exit 1; }
 
-	loudness_range=$(grep --ignore-case "range:" "$TMPFILE" | cut -w --fields 3 | tr -d \() || { echo "ERROR: Failed to extract loudness range from loudgain output"; rm -f "$TMPFILE"; exit 1; }
+	loudness_range=$(grep --ignore-case "range:" "$TMPFILE" | awk '{print $2}' | tr -d \() || { echo "ERROR: Failed to extract loudness range from loudgain output"; rm -f "$TMPFILE"; exit 1; }
 	rm -f "$TMPFILE"
 
 	debug "Finished checking loudness range for $AUDIO_FILE with loudgain, loudness range: $loudness_range"
@@ -72,7 +72,7 @@ fi
 if which -s ebur128; then
 	debug "Checking loudness range for $AUDIO_FILE with ebur128"
 
-	loudness_range=$(ebur128 "$AUDIO_FILE" | grep --ignore-case "loudness range" | cut -w --fields 3) || { echo "ERROR: ebur128 failed to analyze the audio file"; exit 1; }
+	loudness_range=$(ebur128 "$AUDIO_FILE" | grep --ignore-case "loudness range" | awk '{print $3}') || { echo "ERROR: ebur128 failed to analyze the audio file"; exit 1; }
 
 	debug "Finished checking loudness range for $AUDIO_FILE with ebur128, loudness range: $loudness_range"
 
