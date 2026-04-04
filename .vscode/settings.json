@@ -20,6 +20,7 @@
 		"newaxis",
 		"numpy",
 		"peakiness",
+		"pgms",
 		"samplerate",
 		"scriptable",
 		"soundfile"
