@@ -50,4 +50,6 @@ check_audio_file "$AUDIO_FILE"
 
 is_number "$TRUE_PEAK" || { echo "$0: Error: True peak is not a valid number"; exit 1; }
 
-./true_peak.sh "$DEBUG" --true-peak "$TRUE_PEAK" "$AUDIO_FILE"
+if check_dependencies "sox" "libsox-fmt-all" "ebur128" "loudgain"; then
+    ./true_peak.sh "$DEBUG" --true-peak "$TRUE_PEAK" "$AUDIO_FILE"
+fi

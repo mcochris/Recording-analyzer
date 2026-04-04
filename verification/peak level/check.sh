@@ -56,18 +56,20 @@ check_audio_file "$AUDIO_FILE"
 
 if [[ -n "$LEFT_PEAK_LEVEL" ]]; then
     debug "Left peak level: $LEFT_PEAK_LEVEL"
-	is_number "$LEFT_PEAK_LEVEL" || { echo "$0: Error: Left peak level is not a valid number"; exit 1; }
+    is_number "$LEFT_PEAK_LEVEL" || { echo "$0: Error: Left peak level is not a valid number"; exit 1; }
 else
     debug "Left peak level not specified"
 fi
 
 if [[ -n "$RIGHT_PEAK_LEVEL" ]]; then
     debug "Right peak level: $RIGHT_PEAK_LEVEL"
-	is_number "$RIGHT_PEAK_LEVEL" || { echo "$0: Error: Right peak level is not a valid number"; exit 1; }
+    is_number "$RIGHT_PEAK_LEVEL" || { echo "$0: Error: Right peak level is not a valid number"; exit 1; }
 else
     debug "Right peak level not specified"
 fi
 
-./peak_level.sh "$DEBUG" --left-peak-level "$LEFT_PEAK_LEVEL" --right-peak-level "$RIGHT_PEAK_LEVEL" "$AUDIO_FILE"
+if check_dependencies "sox" "libsox-fmt-all"; then
+    ./peak_level.sh "$DEBUG" --left-peak-level "$LEFT_PEAK_LEVEL" --right-peak-level "$RIGHT_PEAK_LEVEL" "$AUDIO_FILE"
+fi
 
 python3 ./peak_level.py --left-peak-level "$LEFT_PEAK_LEVEL" --right-peak-level "$RIGHT_PEAK_LEVEL" --threshold "$THRESHOLD" "$AUDIO_FILE"

@@ -47,7 +47,7 @@ debug "Left noise floor: $LEFT_NOISE_FLOOR"
 debug "Right noise floor: $RIGHT_NOISE_FLOOR"
 debug "Threshold: ${THRESHOLD}%"
 
-readonly AUDIO_FILE LEFT_NOISE_FLOOR RIGHT_NOISE_FLOOR THRESHOLD
+readonly AUDIO_FILE THRESHOLD
 
 print_header "Checking noise floor for $(basename "$AUDIO_FILE") with threshold ${THRESHOLD}%"
 
@@ -65,6 +65,14 @@ if [[ -n "$RIGHT_NOISE_FLOOR" ]]; then
 	is_number "$RIGHT_NOISE_FLOOR" || { echo "$0: Error: Right noise floor is not a valid number"; exit 1; }
 else
     debug "Right noise floor not specified"
+fi
+
+if [[ "$LEFT_NOISE_FLOOR" == "-inf" ]]; then
+    LEFT_NOISE_FLOOR=-99.99
+fi
+
+if [[ "$RIGHT_NOISE_FLOOR" == "-inf" ]]; then
+    RIGHT_NOISE_FLOOR=-99.99
 fi
 
 python3 ./noise_floor.py --left-noise-floor "$LEFT_NOISE_FLOOR" --right-noise-floor "$RIGHT_NOISE_FLOOR" --threshold "$THRESHOLD" "$AUDIO_FILE"
