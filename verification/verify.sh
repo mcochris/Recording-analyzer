@@ -119,6 +119,8 @@ LOUDNESS_RANGE=$(grep --ignore-case "Loudness range" "$ANALYSIS_OUTPUT" | awk '{
 readonly LOUDNESS_RANGE
 debug "Loudness range: $LOUDNESS_RANGE"
 
+cat "$ANALYSIS_OUTPUT"
+
 # Loop through each verification subdirectory and run its checks
 # Each subdirectory should contain a script named "check.sh" that performs
 # specific checks on the extracted metrics.
