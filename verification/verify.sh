@@ -9,8 +9,10 @@
 
 [[ $# -eq 0 ]] && { echo "Usage: $0 <audio_file>"; exit 1; }
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+readonly SCRIPT_DIR
 # shellcheck disable=SC1091
-source ./common.sh || { echo "Error: Failed to source common.sh"; exit 1; }
+source "$SCRIPT_DIR/common.sh" || { echo "Error: Failed to source common.sh"; exit 1; }
 
 readonly HELP="
 Audio Recording Analyzer Verification Script
@@ -63,7 +65,7 @@ debug "Audio file (realpath): $REALPATH_AUDIO_FILE"
 
 check_audio_file "$AUDIO_FILE"
 
-[[ -x "$RECORDING_ANALYZER_PROGRAM" ]] || { echo "Error: Main script not found or not executable: $RECORDING_ANALYZER_PROGRAM"; exit 1; }
+[[ -x "$SCRIPT_DIR/$RECORDING_ANALYZER_PROGRAM" ]] || { echo "Error: Main script not found or not executable: $RECORDING_ANALYZER_PROGRAM"; exit 1; }
 
 ANALYSIS_OUTPUT="$(get_tempfile)"
 readonly ANALYSIS_OUTPUT
@@ -72,7 +74,7 @@ trap 'rm -f "$ANALYSIS_OUTPUT" 2> /dev/null' EXIT
 #
 # Run the recording analyzer script and capture its output
 #
-"$RECORDING_ANALYZER_PROGRAM" "$REALPATH_AUDIO_FILE" > "$ANALYSIS_OUTPUT"
+"$SCRIPT_DIR/$RECORDING_ANALYZER_PROGRAM" "$REALPATH_AUDIO_FILE" > "$ANALYSIS_OUTPUT"
 
 #
 # Extract the analysis results
@@ -122,12 +124,13 @@ debug "Loudness range: $LOUDNESS_RANGE"
 # specific checks on the extracted metrics.
 
 for dir in "peak level" "noise floor" "dynamic range" "crest factor" "average_phase" "integrated loudness" "true peak" "loudness range"; do
-    debug "Checking directory: $dir"
-	if [[ -x "$dir/check.sh" ]]; then
-		debug "Running $dir/check.sh"
-		cd "$dir" || { echo "ERROR: Failed to change directory to \"$dir\""; exit 1; }
+    debug "Checking directory: $SCRIPT_DIR/$dir"
+	[[ -d "$SCRIPT_DIR/$dir" ]] || { echo "Warning: Directory not found: $SCRIPT_DIR/$dir. Skipping."; continue; }
+	if [[ -x "$SCRIPT_DIR/$dir/check.sh" ]]; then
+		debug "Running $SCRIPT_DIR/$dir/check.sh"
+		cd "$SCRIPT_DIR/$dir" || { echo "ERROR: Failed to change directory to \"$SCRIPT_DIR/$dir\""; exit 1; }
 		./check.sh "$DEBUG" --left-peak-level "$LEFT_PEAK_LEVEL" --right-peak-level "$RIGHT_PEAK_LEVEL" --left-noise-floor "$LEFT_NOISE_FLOOR" --right-noise-floor "$RIGHT_NOISE_FLOOR" --left-crest-factor "$LEFT_CREST_FACTOR" --right-crest-factor "$RIGHT_CREST_FACTOR" --average-phase "$AVERAGE_PHASE" --integrated-loudness "$INTEGRATED_LOUDNESS" --true-peak "$TRUE_PEAK" --loudness-range "$LOUDNESS_RANGE" "$REALPATH_AUDIO_FILE"
-        debug "Finished running $dir/check.sh"
-		cd - > /dev/null || { echo "ERROR: Failed to change directory back to parent from \"$dir\""; exit 1; }
+        debug "Finished running $SCRIPT_DIR/$dir/check.sh"
+		cd - > /dev/null || { echo "ERROR: Failed to change directory back to parent from \"$SCRIPT_DIR/$dir\""; exit 1; }
 	fi
 done
