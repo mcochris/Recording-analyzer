@@ -37,7 +37,7 @@ function debug() {
 function is_number() {
 	# This function checks if the input string is a valid number (integer or floating-point).
 	# It returns 0 (true) if the input is a number, or 1 (false) if it is not.
-    [[ "$1" =~ ^[+-]?([0-9]+\.?[0-9]*|\.[0-9]+)([eE][+-]?[0-9]+)?$ ]]
+    [[ "$1" =~ ^[+-]?([0-9]+\.?[0-9]*|\.[0-9]+)([eE][+-]?[0-9]+)?|inf$ ]]
 }
 
 function get_threshold() {
@@ -61,6 +61,7 @@ function within_range() {
 		echo "ERROR: within_range requires exactly 2 arguments, but got $#"
 		return 1
 	fi
+
 	if ! is_number "$1" || ! is_number "$2"; then
 		echo "ERROR: Non-numeric value provided to within_range: '$1' and '$2'"
 		return 1
@@ -100,4 +101,21 @@ function print_header() {
 	echo "$header"
 	printf '=%.0s' $(seq 1 ${#header})
 	echo ""
+}
+
+function check_dependencies() {
+    local missing=0
+
+    for dep in "$@"; do
+        if command -v "$dep" &>/dev/null; then
+            : # found via PATH
+        elif dpkg-query -W -f='${Status}' "$dep" 2>/dev/null | grep --quiet "install ok installed"; then
+            : # found via dpkg
+        else
+            echo "ERROR: $dep is not installed or not in PATH"
+            missing=1
+        fi
+    done
+
+    return $missing
 }
