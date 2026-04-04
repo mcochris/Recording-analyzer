@@ -62,7 +62,7 @@ if which -s bs1770gain; then
 	if within_range "$loudness" "$INTEGRATED_LOUDNESS"; then
 		echo "bs1770gain integrated loudness is within threshold"
 	else
-		echo "bs1770gain integrated loudness is not within threshold, calculated $loudness, expected $INTEGRATED_LOUDNESS, threshold ${THRESHOLD}%"
+		echo "bs1770gain integrated loudness is not within threshold, calculated $loudness, expected $INTEGRATED_LOUDNESS"
 	fi
 else
     echo "ERROR: bs1770gain is not installed or not in PATH"
@@ -82,7 +82,7 @@ if which -s loudgain; then
 	if within_range "$loudness" "$INTEGRATED_LOUDNESS"; then
 		echo "loudgain integrated loudness is within threshold"
 	else
-		echo "loudgain integrated loudness is not within threshold, calculated $loudness, expected $INTEGRATED_LOUDNESS, threshold ${THRESHOLD}%"
+		echo "loudgain integrated loudness is not within threshold, calculated $loudness, expected $INTEGRATED_LOUDNESS"
 	fi
 else
     echo "ERROR: loudgain is not installed or not in PATH"
