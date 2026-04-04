@@ -49,8 +49,7 @@ def main():
 				print(
 					f"Python {name} crest factor is not within threshold, "
 					f"calculated {crest_linear:.6f}, "
-					f"expected {expected:.6f}, "
-					f"threshold {args.threshold:g}%"
+					f"expected {expected:.6f}"
 				)
 
 if __name__ == '__main__':
