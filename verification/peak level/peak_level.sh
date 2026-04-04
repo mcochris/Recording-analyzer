@@ -12,7 +12,7 @@ Usage: $0 --left-peak-level <value> --right-peak-level <value> <audio_file>
 Optional: --debug"; exit 1; }
 
 # shellcheck disable=SC1091
-source ../common.sh
+source ../common.sh || { echo "ERROR: Failed to source common.sh"; exit 1; }
 
 AUDIO_FILE=""
 LEFT_PEAK_LEVEL=""
@@ -59,7 +59,7 @@ if [[ -n "$LEFT_PEAK_LEVEL" ]]; then
 	read -r max_amplitude < <(sox "$AUDIO_FILE" -n remix 1 stat 2>&1 |
 		grep --ignore-case "Maximum amplitude" |
 		sed --quiet 1p |
-		awk '{print $2}')
+		awk '{print $3}')
 
 	debug "SoX reads a Max amplitude of $max_amplitude for the left channel"
 
@@ -80,7 +80,7 @@ if [[ -n "$RIGHT_PEAK_LEVEL" ]]; then
 	read -r max_amplitude < <(sox "$AUDIO_FILE" -n remix 2 stat 2>&1|
 		grep --ignore-case "Maximum amplitude" |
 		sed --quiet 1p |
-		awk '{print $2}')
+		awk '{print $3}')
 
 	debug "SoX reads a Max amplitude of $max_amplitude for the right channel"
 
