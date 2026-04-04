@@ -62,7 +62,7 @@ if [[ -n "$LEFT_CREST_FACTOR" ]]; then
 	debug "SoX reads a Crest factor of $crest_factor for the left channel"
 
 	if ! within_range "$crest_factor" "$LEFT_CREST_FACTOR"; then
-		echo "SoX left crest factor is not within threshold, calculated $crest_factor, expected $LEFT_CREST_FACTOR, threshold ${THRESHOLD}%"
+		echo "SoX left crest factor is not within threshold, calculated $crest_factor, expected $LEFT_CREST_FACTOR"
 	else
 		echo "SoX left crest factor is within threshold"
 	fi
@@ -79,7 +79,7 @@ if [[ -n "$RIGHT_CREST_FACTOR" ]]; then
 	debug "SoX reads a Crest factor of $crest_factor for the right channel"
 
 	if ! within_range "$crest_factor" "$RIGHT_CREST_FACTOR"; then
-		echo "SoX right crest factor is not within threshold, calculated $crest_factor, expected $RIGHT_CREST_FACTOR, threshold ${THRESHOLD}%"
+		echo "SoX right crest factor is not within threshold, calculated $crest_factor, expected $RIGHT_CREST_FACTOR"
 	else
 		echo "SoX right crest factor is within threshold"
 	fi
