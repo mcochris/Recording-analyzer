@@ -12,7 +12,7 @@ Usage: $0 --left-crest-factor <value> --right-crest-factor <value> <audio_file>
 Optional: --debug"; exit 1; }
 
 # shellcheck disable=SC1091
-source ../common.sh
+source ../common.sh || { echo "ERROR: Failed to source common.sh"; exit 1; }
 
 AUDIO_FILE=""
 LEFT_CREST_FACTOR=""
@@ -57,7 +57,7 @@ if [[ -n "$LEFT_CREST_FACTOR" ]]; then
 	read -r crest_factor < <(sox "$AUDIO_FILE" -n remix 1 stats 2>&1 |
 		grep --ignore-case "Crest factor" |
 		sed --quiet 1p |
-		cut -w --fields 3)
+		awk '{print $3}')
 
 	debug "SoX reads a Crest factor of $crest_factor for the left channel"
 
@@ -71,10 +71,10 @@ fi
 if [[ -n "$RIGHT_CREST_FACTOR" ]]; then
 	debug "Checking right crest factor for $AUDIO_FILE"
 	is_number "$RIGHT_CREST_FACTOR" || { echo "$0: Error: Right crest factor is not a valid number"; exit 1; }
-	read -r crest_factor < <(sox "$AUDIO_FILE" -n remix 2 stats 2>&1|
+	read -r crest_factor < <(sox "$AUDIO_FILE" -n remix 2 stats 2>&1 |
 		grep --ignore-case "Crest factor" |
 		sed --quiet 1p |
-		cut -w --fields 3)
+		awk '{print $3}')
 
 	debug "SoX reads a Crest factor of $crest_factor for the right channel"
 
