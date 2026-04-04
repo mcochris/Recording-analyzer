@@ -123,7 +123,7 @@ debug "Loudness range: $LOUDNESS_RANGE"
 # Each subdirectory should contain a script named "check.sh" that performs
 # specific checks on the extracted metrics.
 
-for dir in "peak level" "noise floor" "dynamic range" "crest factor" "average_phase" "integrated loudness" "true peak" "loudness range"; do
+for dir in "peak level" "noise floor" "crest factor" "average phase" "integrated loudness" "true peak" "loudness range"; do
     debug "Checking directory: $SCRIPT_DIR/$dir"
 	[[ -d "$SCRIPT_DIR/$dir" ]] || { echo "Warning: Directory not found: $SCRIPT_DIR/$dir. Skipping."; continue; }
 	if [[ -x "$SCRIPT_DIR/$dir/check.sh" ]]; then
