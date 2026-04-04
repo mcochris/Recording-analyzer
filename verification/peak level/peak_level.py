@@ -15,8 +15,9 @@ import sys
 
 def main():
 	parser = argparse.ArgumentParser(			description="Compare peak level results for a given audio file.")
-	parser.add_argument("--right-peak-level",	required=True, type=float, help="Expected right channel peak level")
+	parser.add_argument("--debug",				action="store_true", help="Enable debug output")
 	parser.add_argument("--left-peak-level",	required=True, type=float, help="Expected left channel peak level")
+	parser.add_argument("--right-peak-level",	required=True, type=float, help="Expected right channel peak level")
 	parser.add_argument("--threshold", 			required=True, type=float, help="Acceptable percentage difference between calculated and expected values")
 	parser.add_argument("audiofile",			type=str, help="Path to the audio file")
 
