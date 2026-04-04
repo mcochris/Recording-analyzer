@@ -12,7 +12,7 @@ Usage: $0 --true-peak <value> <audio_file>
 Optional: --debug"; exit 1; }
 
 # shellcheck disable=SC1091
-source ../common.sh
+source ../common.sh || { echo "ERROR: Failed to source common.sh"; exit 1; }
 
 AUDIO_FILE=""
 TRUE_PEAK=""
@@ -43,7 +43,7 @@ debug "THRESHOLD: $THRESHOLD"
 
 readonly TRUE_PEAK AUDIO_FILE THRESHOLD
 
-check_audio_file
+check_audio_file "${AUDIO_FILE}"
 
 [[ -z "$TRUE_PEAK" ]] && { echo "Error: No true peak specified"; exit 1; }
 
@@ -52,7 +52,7 @@ is_number "$TRUE_PEAK" || { echo "Error: true peak is not a valid number"; exit 
 if which -s sox; then
 	debug "Checking true peak for $AUDIO_FILE with sox"
 
-	true_peak=$(sox "$AUDIO_FILE" --null stats 2>&1 | grep --ignore-case "pk lev db" | cut -w --fields 4) || { echo "ERROR: sox failed to analyze the audio file"; exit 1; }
+	true_peak=$(sox "$AUDIO_FILE" --null stats 2>&1 | grep --ignore-case "pk lev db" | awk '{print $4}') || { echo "ERROR: sox failed to analyze the audio file"; exit 1; }
 
 	debug "Finished checking true peak for $AUDIO_FILE with sox, true peak: $true_peak"
 
@@ -71,7 +71,7 @@ if which -s loudgain; then
 
 	loudgain "$AUDIO_FILE" > "$TMPFILE" 2> /dev/null || { echo "ERROR: loudgain failed to analyze the audio file"; rm -f "$TMPFILE"; exit 1; }
 
-	true_peak=$(grep --ignore-case "peak:" "$TMPFILE" | cut -w --fields 4 | tr -d \() || { echo "ERROR: Failed to extract true peak from loudgain output"; rm -f "$TMPFILE"; exit 1; }
+	true_peak=$(grep --ignore-case "peak:" "$TMPFILE" | awk '{print $2}' | tr -d \() || { echo "ERROR: Failed to extract true peak from loudgain output"; rm -f "$TMPFILE"; exit 1; }
 	rm -f "$TMPFILE"
 
 	debug "Finished checking true peak for $AUDIO_FILE with loudgain, true peak: $true_peak"
@@ -88,7 +88,7 @@ fi
 if which -s ebur128; then
 	debug "Checking true peak for $AUDIO_FILE with ebur128"
 
-	true_peak=$(ebur128 "$AUDIO_FILE" | grep --ignore-case "peak level" | cut -w --fields 3) || { echo "ERROR: ebur128 failed to analyze the audio file"; exit 1; }
+	true_peak=$(ebur128 "$AUDIO_FILE" | grep --ignore-case "peak level" | awk '{print $3}') || { echo "ERROR: ebur128 failed to analyze the audio file"; exit 1; }
 
 	debug "Finished checking true peak for $AUDIO_FILE with ebur128, true peak: $true_peak"
 
