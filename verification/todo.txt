@@ -25,3 +25,7 @@
 - can pgms run against NAS files?
 
 - does "find . -mindepth 1" work on FreeBSD?
+
+- fix "cut -w" problem
+
+- in verify.sh, if you don't give the music file's absolute pathname, when it cd's to another dir the music file won't be found
