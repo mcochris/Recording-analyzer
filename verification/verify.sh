@@ -18,9 +18,9 @@ Usage: verify.sh <audio_file>
 Example: verify.sh recording.wav
 
 This script runs the recording analyzer on the specified audio file and
-extracts key metrics such as peak levels, noise floor, dynamic range, crest
-factor, average phase, integrated loudness, true peak, and loudness range.
-It is designed to verify that the recording analyzer is functioning correctly
+extracts key metrics such as peak levels, noise floor, crest factor,
+average phase, integrated loudness, true peak, and loudness range. It is
+designed to verify that the recording analyzer is functioning correctly
 and producing expected results.
 
 Optional flags:
@@ -53,6 +53,11 @@ while [[ $# -gt 0 ]]; do
 done
 
 readonly AUDIO_FILE DEBUG SHOW_HELP
+REALPATH_AUDIO_FILE="$(realpath "$AUDIO_FILE")"
+readonly REALPATH_AUDIO_FILE
+debug "Audio file: $AUDIO_FILE"
+debug "Debug mode: $DEBUG"
+debug "Audio file (realpath): $REALPATH_AUDIO_FILE"
 
 [[ -n "$SHOW_HELP" ]] && { echo "$HELP"; exit 0; }
 
@@ -67,7 +72,7 @@ trap 'rm -f "$ANALYSIS_OUTPUT" 2> /dev/null' EXIT
 #
 # Run the recording analyzer script and capture its output
 #
-"$RECORDING_ANALYZER_PROGRAM" "$AUDIO_FILE" > "$ANALYSIS_OUTPUT"
+"$RECORDING_ANALYZER_PROGRAM" "$REALPATH_AUDIO_FILE" > "$ANALYSIS_OUTPUT"
 
 #
 # Extract the analysis results
@@ -87,14 +92,6 @@ debug "Left noise floor: $LEFT_NOISE_FLOOR"
 RIGHT_NOISE_FLOOR=$(grep --ignore-case "Noise floor" "$ANALYSIS_OUTPUT" | sed --quiet 2p | awk '{print $3}')
 readonly RIGHT_NOISE_FLOOR
 debug "Right noise floor: $RIGHT_NOISE_FLOOR"
-
-LEFT_DYNAMIC_RANGE=$(grep --ignore-case "Dynamic range" "$ANALYSIS_OUTPUT" | sed --quiet 1p | awk '{print $3}')
-readonly LEFT_DYNAMIC_RANGE
-debug "Left dynamic range: $LEFT_DYNAMIC_RANGE"
-
-RIGHT_DYNAMIC_RANGE=$(grep --ignore-case "Dynamic range" "$ANALYSIS_OUTPUT" | sed --quiet 2p | awk '{print $3}')
-readonly RIGHT_DYNAMIC_RANGE
-debug "Right dynamic range: $RIGHT_DYNAMIC_RANGE"
 
 LEFT_CREST_FACTOR=$(grep --ignore-case "Crest factor" "$ANALYSIS_OUTPUT" | sed --quiet 1p | awk '{print $3}')
 readonly LEFT_CREST_FACTOR
@@ -125,11 +122,13 @@ debug "Loudness range: $LOUDNESS_RANGE"
 # specific checks on the extracted metrics.
 
 for dir in "peak level" "noise floor" "dynamic range" "crest factor" "average_phase" "integrated loudness" "true peak" "loudness range"; do
+    debug "Checking directory: $dir"
 	if [[ -x "$dir/check.sh" ]]; then
 		debug "Running $dir/check.sh"
 		cd "$dir" || { echo "ERROR: Failed to change directory to \"$dir\""; exit 1; }
-		./check.sh "$DEBUG" --left-peak-level "$LEFT_PEAK_LEVEL" --right-peak-level "$RIGHT_PEAK_LEVEL" --left-noise-floor "$LEFT_NOISE_FLOOR" --right-noise-floor "$RIGHT_NOISE_FLOOR" --left-dynamic-range "$LEFT_DYNAMIC_RANGE" --right-dynamic-range "$RIGHT_DYNAMIC_RANGE" --left-crest-factor "$LEFT_CREST_FACTOR" --right-crest-factor "$RIGHT_CREST_FACTOR" --average-phase "$AVERAGE_PHASE" --integrated-loudness "$INTEGRATED_LOUDNESS" --true-peak "$TRUE_PEAK" --loudness-range "$LOUDNESS_RANGE" "$AUDIO_FILE"
-		cd .. || { echo "ERROR: Failed to change directory back to parent from \"$dir\""; exit 1; }
+		./check.sh "$DEBUG" --left-peak-level "$LEFT_PEAK_LEVEL" --right-peak-level "$RIGHT_PEAK_LEVEL" --left-noise-floor "$LEFT_NOISE_FLOOR" --right-noise-floor "$RIGHT_NOISE_FLOOR" --left-crest-factor "$LEFT_CREST_FACTOR" --right-crest-factor "$RIGHT_CREST_FACTOR" --average-phase "$AVERAGE_PHASE" --integrated-loudness "$INTEGRATED_LOUDNESS" --true-peak "$TRUE_PEAK" --loudness-range "$LOUDNESS_RANGE" "$REALPATH_AUDIO_FILE"
+        debug "Finished running $dir/check.sh"
+		cd - || { echo "ERROR: Failed to change directory back to parent from \"$dir\""; exit 1; }
 	else
 		echo "Warning: No executable \"$dir/check.sh\", skipping checks for this directory"
 	fi
