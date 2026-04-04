@@ -59,7 +59,7 @@ if which -s sox; then
 	if within_range "$true_peak" "$TRUE_PEAK"; then
 		echo "sox true peak is within threshold"
 	else
-		echo "sox true peak is not within threshold, calculated $true_peak, expected $TRUE_PEAK, threshold ${THRESHOLD}%"
+		echo "sox true peak is not within threshold, calculated $true_peak, expected $TRUE_PEAK"
 	fi
 else
     echo "ERROR: sox is not installed or not in PATH"
@@ -79,7 +79,7 @@ if which -s loudgain; then
 	if within_range "$true_peak" "$TRUE_PEAK"; then
 		echo "loudgain true peak is within threshold"
 	else
-		echo "loudgain true peak is not within threshold, calculated $true_peak, expected $TRUE_PEAK, threshold ${THRESHOLD}%"
+		echo "loudgain true peak is not within threshold, calculated $true_peak, expected $TRUE_PEAK"
 	fi
 else
     echo "ERROR: loudgain is not installed or not in PATH"
@@ -95,7 +95,7 @@ if which -s ebur128; then
 	if within_range "$true_peak" "$TRUE_PEAK"; then
 		echo "ebur128 true peak is within threshold"
 	else
-		echo "ebur128 true peak is not within threshold, calculated $true_peak, expected $TRUE_PEAK, threshold ${THRESHOLD}%"
+		echo "ebur128 true peak is not within threshold, calculated $true_peak, expected $TRUE_PEAK"
 	fi
 else
     echo "ERROR: ebur128 is not installed or not in PATH"
