@@ -50,4 +50,6 @@ check_audio_file "$AUDIO_FILE"
 
 is_number "$LOUDNESS_RANGE" || { echo "$0: Error: Loudness range is not a valid number"; exit 1; }
 
-./loudness_range.sh "$DEBUG" --loudness-range "$LOUDNESS_RANGE" "$AUDIO_FILE"
+if check_dependencies "loudgain" "ebur128"; then
+    ./loudness_range.sh "$DEBUG" --loudness-range "$LOUDNESS_RANGE" "$AUDIO_FILE"
+fi
