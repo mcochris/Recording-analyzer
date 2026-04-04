@@ -10,7 +10,7 @@
 [[ $# -eq 0 ]] && { echo "Usage: $0 <audio_file>"; exit 1; }
 
 # shellcheck disable=SC1091
-source ./common.sh
+source ./common.sh || { echo "Error: Failed to source common.sh"; exit 1; }
 
 readonly HELP="
 Audio Recording Analyzer Verification Script
@@ -128,8 +128,6 @@ for dir in "peak level" "noise floor" "dynamic range" "crest factor" "average_ph
 		cd "$dir" || { echo "ERROR: Failed to change directory to \"$dir\""; exit 1; }
 		./check.sh "$DEBUG" --left-peak-level "$LEFT_PEAK_LEVEL" --right-peak-level "$RIGHT_PEAK_LEVEL" --left-noise-floor "$LEFT_NOISE_FLOOR" --right-noise-floor "$RIGHT_NOISE_FLOOR" --left-crest-factor "$LEFT_CREST_FACTOR" --right-crest-factor "$RIGHT_CREST_FACTOR" --average-phase "$AVERAGE_PHASE" --integrated-loudness "$INTEGRATED_LOUDNESS" --true-peak "$TRUE_PEAK" --loudness-range "$LOUDNESS_RANGE" "$REALPATH_AUDIO_FILE"
         debug "Finished running $dir/check.sh"
-		cd - || { echo "ERROR: Failed to change directory back to parent from \"$dir\""; exit 1; }
-	else
-		echo "Warning: No executable \"$dir/check.sh\", skipping checks for this directory"
+		cd - > /dev/null || { echo "ERROR: Failed to change directory back to parent from \"$dir\""; exit 1; }
 	fi
 done
