@@ -12,7 +12,7 @@ Usage: $0 --audio-file <audio_file> --left-crest-factor <value> --right-crest-fa
 Optional: --debug"; exit 1; }
 
 # shellcheck disable=SC1091
-source ../common.sh
+source ../common.sh || { echo "ERROR: Failed to source common.sh"; exit 1; }
 
 AUDIO_FILE=""
 DEBUG=""
