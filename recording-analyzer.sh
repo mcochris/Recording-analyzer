@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
 
-
 #set -o xtrace
 set -o errexit
 set -o nounset
