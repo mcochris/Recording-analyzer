@@ -63,7 +63,7 @@ if which -s loudgain; then
 	if within_range "$loudness_range" "$LOUDNESS_RANGE"; then
 		echo "loudgain loudness range is within threshold"
 	else
-		echo "loudgain loudness range is not within threshold, calculated $loudness_range, expected $LOUDNESS_RANGE, threshold ${THRESHOLD}%"
+		echo "loudgain loudness range is not within threshold, calculated $loudness_range, expected $LOUDNESS_RANGE"
 	fi
 else
     echo "ERROR: loudgain is not installed or not in PATH"
@@ -79,7 +79,7 @@ if which -s ebur128; then
 	if within_range "$loudness_range" "$LOUDNESS_RANGE"; then
 		echo "ebur128 loudness range is within threshold"
 	else
-		echo "ebur128 loudness range is not within threshold, calculated $loudness_range, expected $LOUDNESS_RANGE, threshold ${THRESHOLD}%"
+		echo "ebur128 loudness range is not within threshold, calculated $loudness_range, expected $LOUDNESS_RANGE"
 	fi
 else
     echo "ERROR: ebur128 is not installed or not in PATH"
