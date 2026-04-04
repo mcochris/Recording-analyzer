@@ -54,9 +54,9 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-readonly AUDIO_FILE DEBUG SHOW_HELP
 REALPATH_AUDIO_FILE="$(realpath "$AUDIO_FILE")"
-readonly REALPATH_AUDIO_FILE
+readonly AUDIO_FILE DEBUG SHOW_HELP REALPATH_AUDIO_FILE
+
 debug "Audio file: $AUDIO_FILE"
 debug "Debug mode: $DEBUG"
 debug "Audio file (realpath): $REALPATH_AUDIO_FILE"
