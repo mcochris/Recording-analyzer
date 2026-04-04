@@ -50,4 +50,6 @@ check_audio_file "$AUDIO_FILE"
 
 is_number "$INTEGRATED_LOUDNESS" || { echo "$0: Error: Integrated loudness is not a valid number"; exit 1; }
 
-./integrated_loudness.sh "$DEBUG" --integrated-loudness "$INTEGRATED_LOUDNESS" "$AUDIO_FILE"
+if check_dependencies "bs1770gain" "loudgain"; then
+    ./integrated_loudness.sh "$DEBUG" --integrated-loudness "$INTEGRATED_LOUDNESS" "$AUDIO_FILE"
+fi
