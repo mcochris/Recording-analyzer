@@ -35,10 +35,18 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
+THRESHOLD=$(get_threshold)
 debug "Starting true peak check for $AUDIO_FILE"
 debug "True peak: $TRUE_PEAK"
+debug "Threshold: ${THRESHOLD}%"
 
-readonly TRUE_PEAK AUDIO_FILE DEBUG
+readonly TRUE_PEAK AUDIO_FILE DEBUG THRESHOLD
+
+echo ""
+header="Checking true peak for $AUDIO_FILE with threshold ${THRESHOLD}%"
+echo "$header"
+printf '=%.0s' $(seq 1 ${#header})
+echo ""
 
 check_audio_file "$AUDIO_FILE"
 

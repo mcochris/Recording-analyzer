@@ -48,6 +48,12 @@ debug "THRESHOLD: $THRESHOLD"
 
 readonly LEFT_CREST_FACTOR RIGHT_CREST_FACTOR AUDIO_FILE DEBUG THRESHOLD
 
+echo ""
+header="Checking crest factor for $AUDIO_FILE with threshold ${THRESHOLD}%"
+echo "$header"
+printf '=%.0s' $(seq 1 ${#header})
+echo ""
+
 check_audio_file "$AUDIO_FILE"
 
 [[ -z "$LEFT_CREST_FACTOR" && -z "$RIGHT_CREST_FACTOR" ]] && { echo "$0: Error: No crest factors specified"; exit 1; }

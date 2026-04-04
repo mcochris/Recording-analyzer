@@ -35,10 +35,18 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
+THRESHOLD=$(get_threshold)
 debug "Starting integrated loudness check for $AUDIO_FILE"
 debug "Integrated loudness: $INTEGRATED_LOUDNESS"
+debug "Threshold: ${THRESHOLD}%"
 
-readonly INTEGRATED_LOUDNESS AUDIO_FILE DEBUG
+readonly INTEGRATED_LOUDNESS AUDIO_FILE DEBUG THRESHOLD
+
+echo ""
+header="Checking integrated loudness for $AUDIO_FILE with threshold ${THRESHOLD}%"
+echo "$header"
+printf '=%.0s' $(seq 1 ${#header})
+echo ""
 
 check_audio_file "$AUDIO_FILE"
 

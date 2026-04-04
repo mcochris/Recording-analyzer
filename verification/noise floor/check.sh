@@ -41,11 +41,19 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
+THRESHOLD="$(get_threshold)"
 debug "Starting noise floor check for $AUDIO_FILE"
 debug "Left noise floor: $LEFT_NOISE_FLOOR"
 debug "Right noise floor: $RIGHT_NOISE_FLOOR"
+debug "Threshold: ${THRESHOLD}%"
 
-readonly AUDIO_FILE LEFT_NOISE_FLOOR RIGHT_NOISE_FLOOR
+readonly AUDIO_FILE LEFT_NOISE_FLOOR RIGHT_NOISE_FLOOR THRESHOLD
+
+echo ""
+header="Checking noise floor for $AUDIO_FILE with threshold ${THRESHOLD}%"
+echo "$header"
+printf '=%.0s' $(seq 1 ${#header})
+echo ""
 
 check_audio_file "$AUDIO_FILE"
 
@@ -63,4 +71,4 @@ else
     debug "Right noise floor not specified"
 fi
 
-python3 ./noise_floor.py --left-noise-floor "$LEFT_NOISE_FLOOR" --right-noise-floor "$RIGHT_NOISE_FLOOR" --threshold "$(get_threshold)" "$AUDIO_FILE"
+python3 ./noise_floor.py --left-noise-floor "$LEFT_NOISE_FLOOR" --right-noise-floor "$RIGHT_NOISE_FLOOR" --threshold "$THRESHOLD" "$AUDIO_FILE"

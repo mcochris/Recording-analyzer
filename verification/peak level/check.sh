@@ -48,6 +48,12 @@ debug "Threshold: ${THRESHOLD}%"
 
 readonly AUDIO_FILE DEBUG LEFT_PEAK_LEVEL RIGHT_PEAK_LEVEL THRESHOLD
 
+echo ""
+header="Checking peak level for $AUDIO_FILE with threshold ${THRESHOLD}%"
+echo "$header"
+printf '=%.0s' $(seq 1 ${#header})
+echo ""
+
 check_audio_file "$AUDIO_FILE"
 
 [[ -z "$LEFT_PEAK_LEVEL" && -z "$RIGHT_PEAK_LEVEL" ]] && { echo "$0: Error: No peak levels specified"; exit 1; }
