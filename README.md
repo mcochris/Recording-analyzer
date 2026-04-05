@@ -53,7 +53,7 @@ git clone https://github.com/mcochris/Recording-analyzer.git
 cd Recording-analyzer
 chmod +x recording-analyzer.sh
 ```
-then cd to a directory in your path and "ln -s /your/download/Recording-analyzer/recording-analyzer.sh" to make the program executable from anywhere.
+then cd to a directory in your path and `ln -s /your/download/Recording-analyzer/recording-analyzer.sh` to make the program executable from anywhere.
 
 ## ▶️ Usage
 
@@ -179,12 +179,9 @@ a preferred range of 5–10 LU for consistency.
 - <https://en.wikipedia.org/wiki/DBFS>
 - <https://en.wikipedia.org/wiki/Loudness>
 - <https://en.wikipedia.org/wiki/LUFS>
-
-<https://en.wikipedia.org/wiki/EBU_R_128>
-
-<https://en.wikipedia.org/wiki/Crest_factor>
-
-<https://en.wikipedia.org/wiki/Noise_floor>
+- <https://en.wikipedia.org/wiki/EBU_R_128>
+- <https://en.wikipedia.org/wiki/Crest_factor>
+- <https://en.wikipedia.org/wiki/Noise_floor>
 
 ## 🔬 Validation
 
