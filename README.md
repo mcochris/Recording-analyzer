@@ -46,15 +46,14 @@ Uses ffmpeg filters on decoded PCM audio:
 
 ## 📦 Installation
 
-Cut-n-paste from <https://github.com/mcochris/Recording-analyzer/blob/main/recording-analyzer.sh>
-or
+Cut-n-paste from <https://github.com/mcochris/Recording-analyzer/blob/main/recording-analyzer.sh> or
 
 ```bash
 git clone https://github.com/mcochris/Recording-analyzer.git
 cd Recording-analyzer
 chmod +x recording-analyzer.sh
 ```
-then cd to a directory in your path and "ln -s /your/download/dir/recording-analyzer.sh" to make the program executable from anywhere.
+then cd to a directory in your path and "ln -s /your/download/Recording-analyzer/recording-analyzer.sh" to make the program executable from anywhere.
 
 ## ▶️ Usage
 
@@ -121,7 +120,7 @@ Loudness (EBU R128):
 ## 📖 Metric Definitions
 
 **Peak Level (dBFS)**
-Audio peak level is the highest instantaneous amplitude or loudest point in an audio signal, measured in decibels relative to full scale (dBFS). Does not include intersample peaks. It represents the maximum transient peak, not the average loudness. Ensuring peaks remain below is crucial to prevent digital clipping (distortion).
+Audio peak level is the highest instantaneous amplitude or loudest point in an audio signal, measured in decibels relative to full scale (dBFS). Does not include intersample peaks. It represents the maximum transient peak, not the average loudness. Ensuring peaks remain below zero is crucial to prevent digital clipping (distortion).
 
 **Noise Floor (dBFS)**
 The noise floor in audio is the sum of all unwanted ambient sounds (HVAC,
@@ -146,8 +145,7 @@ indicates good mono compatibility, while a negative average indicates potential
 phase cancellation, where sounds disappear in mono.
 
 **Integrated Loudness (LUFS)**
-Audio integrated loudness is the average loudness of an entire audio program,
-such as a full song, podcast episode, or film, measured from beginning to end
+Audio integrated loudness is the average loudness of the audio file 
 in LUFS (Loudness Units Full Scale). Unlike peak meters, it calculates loudness
 based on human perception to ensure consistent volume levels, often targeting
 -14 LUFS for streaming services like Spotify or YouTube.
@@ -178,11 +176,9 @@ a preferred range of 5–10 LU for consistency.
 
 ## 🧠 Further Reading
 
-<https://en.wikipedia.org/wiki/DBFS>
-
-<https://en.wikipedia.org/wiki/Loudness>
-
-<https://en.wikipedia.org/wiki/LUFS>
+- <https://en.wikipedia.org/wiki/DBFS>
+- <https://en.wikipedia.org/wiki/Loudness>
+- <https://en.wikipedia.org/wiki/LUFS>
 
 <https://en.wikipedia.org/wiki/EBU_R_128>
 
