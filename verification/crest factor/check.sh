@@ -71,5 +71,7 @@ if check_dependencies "sox" "libsox-fmt-all"; then
 fi
 
 if check_python_dependencies "soundfile" "numpy"; then
-	python3 ./crest_factor.py --left-crest-factor "$LEFT_CREST_FACTOR" --right-crest-factor "$RIGHT_CREST_FACTOR" --threshold "$THRESHOLD" "$AUDIO_FILE"
+	if valid_python_format "$AUDIO_FILE"; then
+		python3 ./crest_factor.py --left-crest-factor "$LEFT_CREST_FACTOR" --right-crest-factor "$RIGHT_CREST_FACTOR" --threshold "$THRESHOLD" "$AUDIO_FILE"
+	fi
 fi
