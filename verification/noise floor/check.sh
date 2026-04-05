@@ -75,4 +75,6 @@ if [[ "$RIGHT_NOISE_FLOOR" == "-inf" ]]; then
     RIGHT_NOISE_FLOOR=-99.99
 fi
 
-python3 ./noise_floor.py --left-noise-floor "$LEFT_NOISE_FLOOR" --right-noise-floor "$RIGHT_NOISE_FLOOR" --threshold "$THRESHOLD" "$AUDIO_FILE"
+if check_python_dependencies "soundfile" "numpy"; then
+	python3 ./noise_floor.py --left-noise-floor "$LEFT_NOISE_FLOOR" --right-noise-floor "$RIGHT_NOISE_FLOOR" --threshold "$THRESHOLD" "$AUDIO_FILE"
+fi
