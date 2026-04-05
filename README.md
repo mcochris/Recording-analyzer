@@ -53,6 +53,7 @@ git clone https://github.com/mcochris/Recording-analyzer.git
 cd Recording-analyzer
 chmod +x recording-analyzer.sh
 ```
+
 then cd to a directory in your path and `ln -s /your/download/Recording-analyzer/recording-analyzer.sh` to make the program executable from anywhere.
 
 ## ▶️ Usage
