@@ -49,20 +49,22 @@ check_audio_file "${AUDIO_FILE}"
 
 is_number "$TRUE_PEAK" || { echo "Error: true peak is not a valid number"; exit 1; }
 
-if which -s sox; then
-	debug "Checking true peak for $AUDIO_FILE with sox"
+if valid_sox_format "$AUDIO_FILE"; then
+	if which -s sox; then
+		debug "Checking true peak for $AUDIO_FILE with sox"
 
-	true_peak=$(sox "$AUDIO_FILE" --null stats 2>&1 | grep --ignore-case "pk lev db" | awk '{print $4}') || { echo "ERROR: sox failed to analyze the audio file"; exit 1; }
+		true_peak=$(sox "$AUDIO_FILE" --null stats 2>&1 | grep --ignore-case "pk lev db" | awk '{print $4}') || { echo "ERROR: sox failed to analyze the audio file"; exit 1; }
 
-	debug "Finished checking true peak for $AUDIO_FILE with sox, true peak: $true_peak"
+		debug "Finished checking true peak for $AUDIO_FILE with sox, true peak: $true_peak"
 
-	if within_range "$true_peak" "$TRUE_PEAK"; then
-		echo "sox true peak is within threshold"
+		if within_range "$true_peak" "$TRUE_PEAK"; then
+			echo "sox true peak is within threshold"
+		else
+			echo "sox true peak is not within threshold, calculated $true_peak, expected $TRUE_PEAK"
+		fi
 	else
-		echo "sox true peak is not within threshold, calculated $true_peak, expected $TRUE_PEAK"
+    	echo "ERROR: sox is not installed or not in PATH"
 	fi
-else
-    echo "ERROR: sox is not installed or not in PATH"
 fi
 
 if which -s loudgain; then
