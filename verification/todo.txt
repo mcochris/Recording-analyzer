@@ -10,9 +10,9 @@
 
 - add readme's to each verification directory (DONE)
 
-- add test files to each verification directory
+- add test files to each verification directory (later)
 
-- modify verification directories to also verify against test files
+- modify verification directories to also verify against test files (later)
 
 - check audio file suffix, don't try to process files we can't handle, generate other formats with ffmpeg (done)
 
@@ -22,7 +22,7 @@
 
 - test on WSL (done)
 
-- test on FreeBSD
+- test on FreeBSD (later)
 
 - can pgms run against NAS files? (depends on NAS)
 
@@ -45,3 +45,9 @@
 - top 5 audio file formats: mp3, aac, wav, flac, ogg (ok)
 
 - sox can't do aac or m4a (ok)
+
+- does setting a threshold to 0% break anything?
+
+- does setting a threshold to 100% break anything?
+
+- can threshold be set to -12% or 110%?
