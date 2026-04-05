@@ -148,3 +148,17 @@ function valid_sox_format() {
 			;;
 	esac
 }
+
+function valid_ebur128_format() {
+	local filename="$1"
+	local format="${filename##*.}"
+	case "$format" in
+		"wav"|"flac"|"ogg"|"mp3")
+			return 0
+			;;
+		*)
+			echo "ERROR: Unsupported ebur128 audio format: $format"
+			return 1
+			;;
+	esac
+}
