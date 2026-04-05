@@ -114,11 +114,15 @@ function long_running_task() {
 		noise=$(get_stat "$ch" "Noise floor dB")
 		crest=$(get_stat "$ch" "Crest factor")
 
+		rounded_peak=$(printf "%.2f" "$peak")
+		rounded_noise=$(printf "%.2f" "$noise")
+		rounded_crest=$(printf "%.2f" "$crest")
+
 		echo ""
 		echo "$label Channel:"
-		echo "  Peak Level:     ${peak:-N/A} dBFS"
-		echo "  Noise Floor:    ${noise:-N/A} dBFS"
-		echo "  Crest Factor:   ${crest:-N/A}"
+		echo "  Peak Level:     ${rounded_peak:-N/A} dBFS"
+		echo "  Noise Floor:    ${rounded_noise:-N/A} dBFS"
+		echo "  Crest Factor:   ${rounded_crest:-N/A}"
 	done
 
 	# Stereo correlation (only meaningful for stereo files)
@@ -128,7 +132,7 @@ function long_running_task() {
 
 		PHASE=$(ffmpeg -hide_banner -i "$FILE" -af "aphasemeter=video=0,ametadata=print:file=-" -f null - 2>/dev/null \
 			  | grep 'lavfi.aphasemeter.phase' \
-			  | awk -F '=' '{ sum+=$2; n++ } END { if (n>0) printf "%.4f", sum/n; else print "N/A" }')
+			  | awk -F '=' '{ sum+=$2; n++ } END { if (n>0) printf "%.2f", sum/n; else print "N/A" }')
 
 		echo "  Average Phase:  ${PHASE:-N/A}"
 	fi
@@ -138,11 +142,15 @@ function long_running_task() {
 	INPUT_TP=$(get_loudnorm "input_tp")
 	INPUT_LRA=$(get_loudnorm "input_lra")
 
+	rounded_input_i=$(printf "%.2f" "$INPUT_I")
+	rounded_input_tp=$(printf "%.2f" "$INPUT_TP")
+	rounded_input_lra=$(printf "%.2f" "$INPUT_LRA")
+
 	echo ""
 	echo "Loudness (EBU R128):"
-	echo "  Integrated Loudness:  ${INPUT_I:-N/A} LUFS"
-	echo "  True Peak:            ${INPUT_TP:-N/A} dBTP"
-	echo "  Loudness Range:       ${INPUT_LRA:-N/A} LU"
+	echo "  Integrated Loudness:  ${rounded_input_i:-N/A} LUFS"
+	echo "  True Peak:            ${rounded_input_tp:-N/A} dBTP"
+	echo "  Loudness Range:       ${rounded_input_lra:-N/A} LU"
 } > "$RESULTS_FILE" 2> /dev/null
 
 # Run task in background, capture PID, spin until done
