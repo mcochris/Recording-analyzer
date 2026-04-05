@@ -88,10 +88,10 @@ function check_audio_file() {
 	# It returns 0 (true) if the file is valid, or 1 (false) if it is not.
 	[[ $# -ne 1 ]] && { echo "ERROR: check_audio_file requires exactly 1 argument, but got $#"; exit 1; }
 	local file="$1"
-	[[ -z "$file" ]] && { echo "$0: Error: No audio file specified"; exit 1; }
-	[[ -e "$file" ]] || { echo "$0: Error: Audio file does not exist: $file"; exit 1; }
-	[[ -f "$file" ]] || { echo "$0: Error: Audio file is not a regular file: $file"; exit 1; }
-	[[ -r "$file" ]] || { echo "$0: Error: Audio file is not readable: $file"; exit 1; }
+	[[ -z "$file" ]] && { echo "$0: ERROR: No audio file specified"; exit 1; }
+	[[ -e "$file" ]] || { echo "$0: ERROR: Audio file does not exist: $file"; exit 1; }
+	[[ -f "$file" ]] || { echo "$0: ERROR: Audio file is not a regular file: $file"; exit 1; }
+	[[ -r "$file" ]] || { echo "$0: ERROR: Audio file is not readable: $file"; exit 1; }
 	return 0
 }
 
@@ -133,4 +133,18 @@ function check_python_dependencies() {
 	done
 
 	return $missing
+}
+
+function valid_sox_format() {
+	local filename="$1"
+	local format="${filename##*.}"
+	case "$format" in
+		"wav"|"flac"|"ogg"|"mp3")
+			return 0
+			;;
+		*)
+			echo "ERROR: Unsupported SoX audio format: $format"
+			return 1
+			;;
+	esac
 }
