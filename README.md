@@ -36,13 +36,13 @@ It is meant for people who want fast insight into recordings without opening a G
 - Stereo correlation (phase)
 - Loudness (EBU R128: LUFS, LRA, true peak)
 
-## ⚙️ How It Works
+## ✅ Requirements
 
-Uses ffmpeg filters on decoded PCM audio:
+The BASH shell and ffmpeg programs must be available on you computer. On Ubuntu linux, you can install them via:
 
-- `astats` → peak, RMS, crest
-- `aphasemeter` → stereo correlation
-- `loudnorm` → LUFS, LRA, true peak
+```shell
+sudo apt install bash ffmpeg
+```
 
 ## 📦 Installation
 
