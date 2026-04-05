@@ -14,15 +14,15 @@
 
 - modify verification directories to also verify against test files
 
-- check audio file suffix, don't try to process files we can't handle, generate other formats with ffmpeg
+- check audio file suffix, don't try to process files we can't handle, generate other formats with ffmpeg (done)
 
 - run main program on all my audio files as test
 
 - run verification on all my audio files as a test
 
-- test on WSL
+- test on WSL (done)
 
-- test on FreeBSD (later)
+- test on FreeBSD
 
 - can pgms run against NAS files? (depends on NAS)
 
@@ -42,6 +42,6 @@
 
 - python divide by 0 on peak level for March...Jim Spence...wav (DONE)
 
-- top 5 audio file formats: mp3, aac, wav, flac, ogg
+- top 5 audio file formats: mp3, aac, wav, flac, ogg (ok)
 
-- sox can't do aac or m4a
+- sox can't do aac or m4a (ok)
