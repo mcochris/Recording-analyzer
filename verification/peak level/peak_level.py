@@ -43,8 +43,16 @@ def main():
 	for ch in ['left', 'right']:
 		calculated = results[ch]
 		exp = expected[ch]
-		diff_percent = abs(calculated - exp) / abs(exp) * 100
-		if diff_percent > threshold:
+		if exp == 0.0:
+			# Percentage difference is undefined when expected is 0; use absolute difference instead
+			diff = abs(calculated - exp)
+			exceeded = diff > threshold
+			if debug:
+				print(f"{sys.argv[0]}: [debug] {ch} using absolute diff (expected=0): diff={diff:.4f} dBFS, threshold={threshold}")
+		else:
+			diff = abs(calculated - exp) / abs(exp) * 100
+			exceeded = diff > threshold
+		if exceeded:
 			print(f"Python {ch} peak level is not within threshold, calculated {calculated:.4f} dBFS, expected {exp:.4f} dBFS")
 		else:
 			print(f"Python {ch} peak level is within threshold")
