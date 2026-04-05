@@ -71,7 +71,7 @@ if which -s loudgain; then
 
 	loudgain "$AUDIO_FILE" > "$TMPFILE" 2> /dev/null || { echo "ERROR: loudgain failed to analyze the audio file"; rm -f "$TMPFILE"; exit 1; }
 
-	true_peak=$(grep --ignore-case "peak:" "$TMPFILE" | awk '{print $2}' | tr -d \() || { echo "ERROR: Failed to extract true peak from loudgain output"; rm -f "$TMPFILE"; exit 1; }
+	true_peak=$(grep --ignore-case "peak:" "$TMPFILE" | awk '{print $3}' | tr -d \() || { echo "ERROR: Failed to extract true peak from loudgain output"; rm -f "$TMPFILE"; exit 1; }
 	rm -f "$TMPFILE"
 
 	debug "Finished checking true peak for $AUDIO_FILE with loudgain, true peak: $true_peak"
