@@ -162,3 +162,17 @@ function valid_ebur128_format() {
 			;;
 	esac
 }
+
+function valid_python_format() {
+	local filename="$1"
+	local format="${filename##*.}"
+	case "$format" in
+		"wav"|"flac"|"ogg"|"mp3")
+			return 0
+			;;
+		*)
+			echo "ERROR: Unsupported Python audio format: $format"
+			return 1
+			;;
+	esac
+}
