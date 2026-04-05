@@ -145,7 +145,7 @@ indicates good mono compatibility, while a negative average indicates potential
 phase cancellation, where sounds disappear in mono.
 
 **Integrated Loudness (LUFS)**
-Audio integrated loudness is the average loudness of the audio file 
+Audio integrated loudness is the average loudness of the audio file
 in LUFS (Loudness Units Full Scale). Unlike peak meters, it calculates loudness
 based on human perception to ensure consistent volume levels, often targeting
 -14 LUFS for streaming services like Spotify or YouTube.
@@ -191,4 +191,4 @@ See methodology and verification details here:
 
 ## 💬 Feedback
 
-Comments, questions, and suggestions are welcome.
+Comments, questions, and suggestions are welcome. You can open a issue here: <https://github.com/mcochris/Recording-analyzer/issues>
