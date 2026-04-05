@@ -5,7 +5,7 @@ indicates good mono compatibility, while a negative average indicates potential
 phase cancellation, where sounds disappear in mono.
 
 I could not find an alternative means of measuring the average phase that
-matched ffmpeg's calculation. Python's soundfile/numpy uses a different
+matched ffmpeg's calculation routine. Python's soundfile/numpy uses a different
 algorithm to calculate phase.
 
 March 2026
