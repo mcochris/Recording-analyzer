@@ -49,6 +49,8 @@ debug "Threshold: ${THRESHOLD}%"
 
 readonly AUDIO_FILE LEFT_CREST_FACTOR RIGHT_CREST_FACTOR THRESHOLD
 
+valid_sox_format "$AUDIO_FILE" || exit 0
+
 check_audio_file "$AUDIO_FILE"
 
 if [[ -n "$LEFT_CREST_FACTOR" ]]; then
