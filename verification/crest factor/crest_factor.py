@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 #
 # This script compares the crest factor results for a given audio file with python's
 # soundfile library to the expected values provided as arguments. It checks if the
