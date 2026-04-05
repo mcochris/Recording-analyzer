@@ -72,7 +72,7 @@ for f in *.flac; do
 done
 ```
 
-Analyze all supported files recursively and save the output to a report:
+Analyze files recursively and save the output to a report:
 
 ```bash
 find . -type f \( -iname "*.flac" -o -iname "*.wav" -o -iname "*.mp3" -o -iname "*.aac" -o -iname "*.m4a" \) -print0 |
