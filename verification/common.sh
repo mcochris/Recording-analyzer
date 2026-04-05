@@ -119,3 +119,18 @@ function check_dependencies() {
 
     return $missing
 }
+
+function check_python_dependencies() {
+	local missing=0
+
+	for dep in "$@"; do
+		if python3 -c "import $dep" &>/dev/null; then
+			: # found via Python
+		else
+			echo "ERROR: Python module '$dep' is not installed"
+			missing=1
+		fi
+	done
+
+	return $missing
+}
