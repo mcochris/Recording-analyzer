@@ -2,7 +2,7 @@
 
 - check if the SoX mp3 libsox-fmt-mp3 extension is installed (DONE)
 
-- check if the python modules used are installed
+- check if the python modules used are installed (DONE)
 
 - should the threshold # be a percentage like 1 for 1%, 10 for 10%? Divide % by 100 to get tolerance. 100% needs to be set to 0 tolerance (DONE, using %)
 
@@ -24,7 +24,7 @@
 
 - test on FreeBSD (later)
 
-- can pgms run against NAS files?
+- can pgms run against NAS files? (depends on NAS)
 
 - does "find . -mindepth 1" work on FreeBSD? (later)
 
@@ -41,3 +41,7 @@
 - loudgain # for true peak is way off (DONE)
 
 - python divide by 0 on peak level for March...Jim Spence...wav (DONE)
+
+- top 5 audio file formats: mp3, aac, wav, flac, ogg
+
+- sox can't do aac or m4a
