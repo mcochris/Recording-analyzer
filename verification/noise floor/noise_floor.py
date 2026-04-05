@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 #
 # This script calculates the noise floor for a given audio file using python's
 # soundfile library. It computes the minimum RMS value over a series of windows
