@@ -69,18 +69,20 @@ else
     echo "ERROR: loudgain is not installed or not in PATH"
 fi
 
-if which -s ebur128; then
-	debug "Checking loudness range for $AUDIO_FILE with ebur128"
+if valid_ebur128_format "$AUDIO_FILE"; then
+	if which -s ebur128; then
+		debug "Checking loudness range for $AUDIO_FILE with ebur128"
 
-	loudness_range=$(ebur128 "$AUDIO_FILE" | grep --ignore-case "loudness range" | awk '{print $3}') || { echo "ERROR: ebur128 failed to analyze the audio file"; exit 1; }
+		loudness_range=$(ebur128 "$AUDIO_FILE" | grep --ignore-case "loudness range" | awk '{print $3}') || { echo "ERROR: ebur128 failed to analyze the audio file"; exit 1; }
 
-	debug "Finished checking loudness range for $AUDIO_FILE with ebur128, loudness range: $loudness_range"
+		debug "Finished checking loudness range for $AUDIO_FILE with ebur128, loudness range: $loudness_range"
 
-	if within_range "$loudness_range" "$LOUDNESS_RANGE"; then
-		echo "ebur128 loudness range is within threshold"
+		if within_range "$loudness_range" "$LOUDNESS_RANGE"; then
+			echo "ebur128 loudness range is within threshold"
+		else
+			echo "ebur128 loudness range is not within threshold, calculated $loudness_range, expected $LOUDNESS_RANGE"
+		fi
 	else
-		echo "ebur128 loudness range is not within threshold, calculated $loudness_range, expected $LOUDNESS_RANGE"
+	    echo "ERROR: ebur128 is not installed or not in PATH"
 	fi
-else
-    echo "ERROR: ebur128 is not installed or not in PATH"
 fi
