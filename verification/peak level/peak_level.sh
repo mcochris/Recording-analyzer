@@ -49,6 +49,8 @@ debug "Threshold: ${THRESHOLD}%"
 
 readonly AUDIO_FILE LEFT_PEAK_LEVEL RIGHT_PEAK_LEVEL THRESHOLD
 
+valid_sox_format "$AUDIO_FILE" || exit 0
+
 check_audio_file "$AUDIO_FILE"
 
 [[ -z "$LEFT_PEAK_LEVEL" && -z "$RIGHT_PEAK_LEVEL" ]] && { echo "$0: Error: No peak levels specified"; exit 1; }
