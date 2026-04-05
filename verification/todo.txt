@@ -40,4 +40,4 @@
 
 - loudgain # for true peak is way off (DONE)
 
-- python divide by 0 on peak level for March...Jim Spence...wav
+- python divide by 0 on peak level for March...Jim Spence...wav (DONE)
