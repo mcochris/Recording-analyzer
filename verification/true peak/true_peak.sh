@@ -87,18 +87,20 @@ else
     echo "ERROR: loudgain is not installed or not in PATH"
 fi
 
-if which -s ebur128; then
-	debug "Checking true peak for $AUDIO_FILE with ebur128"
+if valid_ebur128_format "$AUDIO_FILE"; then
+	if which -s ebur128; then
+		debug "Checking true peak for $AUDIO_FILE with ebur128"
 
-	true_peak=$(ebur128 "$AUDIO_FILE" | grep --ignore-case "peak level" | awk '{print $3}') || { echo "ERROR: ebur128 failed to analyze the audio file"; exit 1; }
+		true_peak=$(ebur128 "$AUDIO_FILE" | grep --ignore-case "peak level" | awk '{print $3}') || { echo "ERROR: ebur128 failed to analyze the audio file"; exit 1; }
 
-	debug "Finished checking true peak for $AUDIO_FILE with ebur128, true peak: $true_peak"
+		debug "Finished checking true peak for $AUDIO_FILE with ebur128, true peak: $true_peak"
 
-	if within_range "$true_peak" "$TRUE_PEAK"; then
-		echo "ebur128 true peak is within threshold"
+		if within_range "$true_peak" "$TRUE_PEAK"; then
+			echo "ebur128 true peak is within threshold"
+		else
+			echo "ebur128 true peak is not within threshold, calculated $true_peak, expected $TRUE_PEAK"
+		fi
 	else
-		echo "ebur128 true peak is not within threshold, calculated $true_peak, expected $TRUE_PEAK"
+		echo "ERROR: ebur128 is not installed or not in PATH"
 	fi
-else
-    echo "ERROR: ebur128 is not installed or not in PATH"
 fi
