@@ -72,4 +72,6 @@ if check_dependencies "sox" "libsox-fmt-all"; then
     ./peak_level.sh "$DEBUG" --left-peak-level "$LEFT_PEAK_LEVEL" --right-peak-level "$RIGHT_PEAK_LEVEL" "$AUDIO_FILE"
 fi
 
-python3 ./peak_level.py --left-peak-level "$LEFT_PEAK_LEVEL" --right-peak-level "$RIGHT_PEAK_LEVEL" --threshold "$THRESHOLD" "$AUDIO_FILE"
+if check_python_dependencies "soundfile" "numpy"; then
+	python3 ./peak_level.py --left-peak-level "$LEFT_PEAK_LEVEL" --right-peak-level "$RIGHT_PEAK_LEVEL" --threshold "$THRESHOLD" "$AUDIO_FILE"
+fi
