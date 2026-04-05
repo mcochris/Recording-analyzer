@@ -47,7 +47,6 @@ Uses ffmpeg filters on decoded PCM audio:
 ## 📦 Installation
 
 Cut-n-paste from <https://github.com/mcochris/Recording-analyzer/blob/main/recording-analyzer.sh>
-
 or
 
 ```bash
@@ -55,7 +54,7 @@ git clone https://github.com/mcochris/Recording-analyzer.git
 cd Recording-analyzer
 chmod +x recording-analyzer.sh
 ```
-cd to a directory in your path and "ln -s /your/download/dir/recording-analyzer.sh"
+then cd to a directory in your path and "ln -s /your/download/dir/recording-analyzer.sh" to make the program executable from anywhere.
 
 ## ▶️ Usage
 
