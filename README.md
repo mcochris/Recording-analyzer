@@ -1,7 +1,7 @@
 # 🎧 Recording Analyzer
 
 ![Bash](https://img.shields.io/badge/Shell-Bash-blue)
-![Platform](https://img.shields.io/badge/Platform-Linux%20%7C%20BSD%20%7C%20WSL-lightgrey)
+![Platform](https://img.shields.io/badge/Platform-Linux%20%7C%20WSL-lightgrey)
 ![Dependency](https://img.shields.io/badge/Dependency-ffmpeg-green)
 ![License](https://img.shields.io/badge/License-MIT-yellow)
 
@@ -24,7 +24,7 @@ This tool fills that gap by providing:
 
 - quick, objective **multi-metric summaries**
 - a **scriptable** workflow for repeated analysis
-- consistent results across Linux, BSD, WSL, and similar environments
+- consistent results across Linux and Windows Subsystem for Linux (WSL)
 
 It is meant for people who want fast insight into recordings without opening a GUI.
 
@@ -44,9 +44,10 @@ Uses ffmpeg filters on decoded PCM audio:
 - `aphasemeter` → stereo correlation
 - `loudnorm` → LUFS, LRA, true peak
 
-Output is parsed via standard shell tools (`awk`, `grep`, etc.) into a concise summary.
-
 ## 📦 Installation
+
+Cut-n-paste from <https://github.com/mcochris/Recording-analyzer/blob/main/recording-analyzer.sh>
+or
 
 ```bash
 git clone https://github.com/mcochris/Recording-analyzer.git
@@ -89,14 +90,14 @@ Audio Analysis: "Computer World.flac"
 =====================================
 
 Left Channel:
-  Peak Level:     -0.496082 dBFS
+  Peak Level:     -0.50 dBFS
   Noise Floor:    -inf dBFS
-  Crest Factor:   12.296386 dB
+  Crest Factor:   12.30 dB
 
 Right Channel:
-  Peak Level:     -1.051494 dBFS
+  Peak Level:     -1.05 dBFS
   Noise Floor:    -inf dBFS
-  Crest Factor:   10.675954 dB
+  Crest Factor:   10.68 dB
 
 Stereo Correlation:
   Average Phase:  0.4893
