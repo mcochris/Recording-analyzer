@@ -13,7 +13,7 @@ done
 
 [[ $# -eq 0 ]] && { echo "Usage: $0 <audio_file>"; exit 1; }
 
-HELP="
+readonly HELP="
 Audio Recording Analyzer
 
 Usage: recording-analyzer.sh <audio_file>
@@ -25,22 +25,45 @@ recording, which can be useful for audio engineers, musicians, and anyone
 interested in understanding the technical aspects of their audio files.
 "
 
-readonly FILE="$1"
-[[ "$FILE" == "-?" || "$FILE" == "-h" || "$FILE" == "--help" ]] && { echo "$HELP"; exit 0; }
-[[ "$FILE" == "-v" || "$FILE" == "--version" ]] && { echo "recording-analyzer.sh version $VERSION"; exit 0; }
+readonly VERSION="1.0.0"
+JSON_OUTPUT="false"
+
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+		-\?|-h|--help)
+			echo "$HELP"
+			exit 0
+			;;
+		-v|--version)
+			echo "recording-analyzer.sh version $VERSION"
+			exit 0
+			;;
+        -j|--json)
+            JSON_OUTPUT="true"
+            shift
+            ;;
+        *)
+			FILE="$1"
+			shift
+			;;
+    esac
+done
+
 [[ -e "$FILE" ]] || { echo "Error: File does not exist: $FILE"; exit 1; }
 [[ -f "$FILE" ]] || { echo "Error: File is not a regular file: $FILE"; exit 1; }
 [[ -r "$FILE" ]] || { echo "Error: File not readable: $FILE"; exit 1; }
 
 RESULTS_FILE="$(mktemp)"
 readonly RESULTS_FILE
+readonly JSON_OUTPUT
+readonly FILE
 
 #
 # Spinner function to show progress while long-running task is executing
 #
 function spinner() {
-    local pid=$1
-    local message=${2:-"Working"}
+    local pid="$1"
+    local message="$2"
 	# shellcheck disable=SC1003
 	local frames=('-' '\' '|' '/')
     local i=0
@@ -74,16 +97,19 @@ function long_running_task() {
 	function get_stat() {
 		local channel="$1"
 		local field="$2"
-		echo "$ASTATS" | awk -v ch="Channel: $channel" -v fld="$field" '
-			$0 ~ ch        { in_block=1; next }
-			in_block && /Channel:/ { in_block=0 }
-			in_block && index($0, fld) { print $NF; exit }
-		'
+			echo "$ASTATS" | awk -v ch="Channel: $channel" -v fld="$field" '
+				$0 ~ ch        { in_block=1; next }
+				in_block && /Channel:/ { in_block=0 }
+				in_block && index($0, fld) { print $NF; exit }
+			'
 	}
 
 	# Detect number of channels
 	NUM_CHANNELS=$(echo "$ASTATS" | grep -c "Channel: [0-9]")
-	readonly NUM_CHANNELS
+	if [[ "$NUM_CHANNELS" -ne 2 ]]; then
+		echo "Error: not a stereo file."
+		exit 1
+	fi
 
 	# Run loudnorm and capture JSON output
 	LOUDNORM=$(ffmpeg -hide_banner -i "$FILE" -af loudnorm=print_format=json -f null - 2>&1 | awk '/^{/,/^}/')
@@ -96,70 +122,92 @@ function long_running_task() {
 	}
 
 	# Print header and per-channel stats to results file
-	echo ""
-	TEXT="Audio Analysis: \"$FILE\""
-	echo "$TEXT"
-	printf '=%.0s' $(seq 1 ${#TEXT})
-	echo ""
-
-	# Per-channel stats
-	for ch in $(seq 1 "$NUM_CHANNELS"); do
-		case $ch in
-			1) label="Left"  ;;
-			2) label="Right" ;;
-			*) label="Ch $ch";;
-		esac
-
-		peak=$(get_stat "$ch" "Peak level dB")
-		noise=$(get_stat "$ch" "Noise floor dB")
-		crest=$(get_stat "$ch" "Crest factor")
-
-		rounded_peak=$(printf "%.2f" "$peak")
-		rounded_noise=$(printf "%.2f" "$noise")
-		rounded_crest=$(printf "%.2f" "$crest")
-
+	if [[ "$JSON_OUTPUT" = "false" ]]; then
 		echo ""
-		echo "$label Channel:"
-		echo "  Peak Level:     ${rounded_peak:-N/A} dBFS"
-		echo "  Noise Floor:    ${rounded_noise:-N/A} dBFS"
-		echo "  Crest Factor:   ${rounded_crest:-N/A}"
-	done
-
-	# Stereo correlation (only meaningful for stereo files)
-	if [ "$NUM_CHANNELS" -ge 2 ]; then
+		TEXT="Audio Analysis: \"$FILE\""
+		echo "$TEXT"
+		printf '=%.0s' $(seq 1 ${#TEXT})
 		echo ""
-		echo "Stereo Correlation:"
-
-		PHASE=$(ffmpeg -hide_banner -i "$FILE" -af "aphasemeter=video=0,ametadata=print:file=-" -f null - 2>/dev/null \
-			  | grep 'lavfi.aphasemeter.phase' \
-			  | awk -F '=' '{ sum+=$2; n++ } END { if (n>0) printf "%.2f", sum/n; else print "N/A" }')
-
-		echo "  Average Phase:  ${PHASE:-N/A}"
 	fi
 
-	# Loudness (EBU R128)
-	INPUT_I=$(get_loudnorm "input_i")
-	INPUT_TP=$(get_loudnorm "input_tp")
-	INPUT_LRA=$(get_loudnorm "input_lra")
+	# Per-channel stats
+	left_peak=$(get_stat 1 "Peak level dB")
+	left_noise=$(get_stat 1 "Noise floor dB")
+	left_crest=$(get_stat 1 "Crest factor")
 
-	rounded_input_i=$(printf "%.2f" "$INPUT_I")
-	rounded_input_tp=$(printf "%.2f" "$INPUT_TP")
-	rounded_input_lra=$(printf "%.2f" "$INPUT_LRA")
+	left_rounded_peak=$(printf "%.2f" "$left_peak")
+	left_rounded_noise=$(printf "%.2f" "$left_noise")
+	left_rounded_crest=$(printf "%.2f" "$left_crest")
 
-	echo ""
-	echo "Loudness (EBU R128):"
-	echo "  Integrated Loudness:  ${rounded_input_i:-N/A} LUFS"
-	echo "  True Peak:            ${rounded_input_tp:-N/A} dBTP"
-	echo "  Loudness Range:       ${rounded_input_lra:-N/A} LU"
-} > "$RESULTS_FILE" 2> /dev/null
+	right_peak=$(get_stat 2 "Peak level dB")
+	right_noise=$(get_stat 2 "Noise floor dB")
+	right_crest=$(get_stat 2 "Crest factor")
+
+	right_rounded_peak=$(printf "%.2f" "$right_peak")
+	right_rounded_noise=$(printf "%.2f" "$right_noise")
+	right_rounded_crest=$(printf "%.2f" "$right_crest")
+
+	if [[ "$JSON_OUTPUT" = "false" ]]; then
+		echo ""
+		echo "Left Channel:"
+		echo "  Peak Level:     ${left_rounded_peak:-N/A} dBFS"
+		echo "  Noise Floor:    ${left_rounded_noise:-N/A} dBFS"
+		echo "  Crest Factor:   ${left_rounded_crest:-N/A}"
+		echo ""
+		echo "Right Channel:"
+		echo "  Peak Level:     ${right_rounded_peak:-N/A} dBFS"
+		echo "  Noise Floor:    ${right_rounded_noise:-N/A} dBFS"
+		echo "  Crest Factor:   ${right_rounded_crest:-N/A}"
+		echo ""
+	fi
+
+	# Stereo correlation (only meaningful for stereo files)
+	average_phase=$(ffmpeg -hide_banner -i "$FILE" -af "aphasemeter=video=0,ametadata=print:file=-" -f null - 2>/dev/null \
+		| grep 'lavfi.aphasemeter.phase' \
+		| awk -F '=' '{ sum+=$2; n++ } END { if (n>0) printf "%.2f", sum/n; else print "N/A" }')
+
+	if [[ "$JSON_OUTPUT" = "false" ]]; then
+		echo "Stereo Correlation:"
+		echo "  Average Phase:  $average_phase degrees"
+	fi
+
+	integrated_loudness=$(get_loudnorm "input_i")
+	true_peak=$(get_loudnorm "input_tp")
+	loudness_range=$(get_loudnorm "input_lra")
+
+	rounded_integrated_loudness=$(printf "%.2f" "$integrated_loudness")
+	rounded_true_peak=$(printf "%.2f" "$true_peak")
+	rounded_loudness_range=$(printf "%.2f" "$loudness_range")
+
+	if [[ "$JSON_OUTPUT" = "false" ]]; then
+		echo ""
+		echo "Loudness (EBU R128):"
+		echo "  Integrated Loudness:  ${rounded_integrated_loudness:-N/A} LUFS"
+		echo "  True Peak:            ${rounded_true_peak:-N/A} dBTP"
+		echo "  Loudness Range:       ${rounded_loudness_range:-N/A} LU"
+	else
+		echo "{"
+		echo "  \"file\": \"$(basename "$FILE")\","
+		echo "  \"left_peak_level_db\": ${left_rounded_peak:-null},"
+		echo "  \"left_noise_floor_db\": ${left_rounded_noise:-null},"
+		echo "  \"left_crest_factor\": ${left_rounded_crest:-null}"
+		echo "  \"right_peak_level_db\": ${right_rounded_peak:-null},"
+		echo "  \"right_noise_floor_db\": ${right_rounded_noise:-null},"
+		echo "  \"right_crest_factor\": ${right_rounded_crest:-null},"
+		echo "  \"average_phase_degrees\": ${average_phase:-null},"
+		echo "  \"integrated_loudness_lufs\": ${rounded_integrated_loudness:-null},"
+		echo "  \"true_peak_db\": ${rounded_true_peak:-null},"
+		echo "  \"loudness_range_lu\": ${rounded_loudness_range:-null}"
+		echo "},"
+	fi
+} > "$RESULTS_FILE"
 
 # Run task in background, capture PID, spin until done
 long_running_task &
 TASK_PID=$!
-spinner $TASK_PID "Working"
+spinner $TASK_PID "Processing \"$(basename "$FILE")\""
 wait $TASK_PID
 
-# Display results and clean up
+echo "" >> "$RESULTS_FILE"
 cat "$RESULTS_FILE"
-rm -f "$RESULTS_FILE" 2>/dev/null
-echo ""
+rm -f "$RESULTS_FILE" 2> /dev/null
