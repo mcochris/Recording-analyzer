@@ -179,17 +179,19 @@ for file in "${files[@]}"; do
 			sample_rate=$(get_metadata "sample_rate")
 			bit_rate=$(get_metadata "bit_rate")
 			bits_per_raw_sample=$(get_metadata "bits_per_raw_sample")
+			track=$(get_metadata "track")
 
 			if [[ "$JSON_OUTPUT" = "false" ]]; then
 				echo ""
 				echo "Metadata:"
-				echo "  Genre:           ${genre:-N/A}"
-				echo "  Artist:          ${artist:-N/A}"
-				echo "  Album:           ${album:-N/A}"
-				echo "  Date:            ${date:-N/A}"
-				echo "  Sample Rate:     ${sample_rate:-N/A} Hz"
-				echo "  Bit Rate:        ${bit_rate:-N/A} bps"
-				echo "  Bits Per Sample: ${bits_per_raw_sample:-N/A}"
+				echo "  Genre:           ${genre:-n/a}"
+				echo "  Artist:          ${artist:-n/a}"
+				echo "  Album:           ${album:-n/a}"
+				echo "  Track:           ${track:-n/a}"
+				echo "  Date:            ${date:-n/a}"
+				echo "  Sample Rate:     ${sample_rate:-n/a} Hz"
+				echo "  Avg. Bit Rate:   ${bit_rate:-n/a} bps"
+				echo "  Bits Per Sample: ${bits_per_raw_sample:-n/a}"
 			fi
 		fi
 
@@ -213,21 +215,21 @@ for file in "${files[@]}"; do
 		if [[ "$JSON_OUTPUT" = "false" ]]; then
 			echo ""
 			echo "Left Channel:"
-			echo "  Peak Level:     ${left_rounded_peak:-N/A} dBFS"
-			echo "  Noise Floor:    ${left_rounded_noise:-N/A} dBFS"
-			echo "  Crest Factor:   ${left_rounded_crest:-N/A}"
+			echo "  Peak Level:     ${left_rounded_peak:-n/a} dBFS"
+			echo "  Noise Floor:    ${left_rounded_noise:-n/a} dBFS"
+			echo "  Crest Factor:   ${left_rounded_crest:-n/a}"
 			echo ""
 			echo "Right Channel:"
-			echo "  Peak Level:     ${right_rounded_peak:-N/A} dBFS"
-			echo "  Noise Floor:    ${right_rounded_noise:-N/A} dBFS"
-			echo "  Crest Factor:   ${right_rounded_crest:-N/A}"
+			echo "  Peak Level:     ${right_rounded_peak:-n/a} dBFS"
+			echo "  Noise Floor:    ${right_rounded_noise:-n/a} dBFS"
+			echo "  Crest Factor:   ${right_rounded_crest:-n/a}"
 			echo ""
 		fi
 
 		# Stereo correlation (only meaningful for stereo files)
 		average_phase=$(ffmpeg -hide_banner -i "$file" -af "aphasemeter=video=0,ametadata=print:file=-" -f null - 2>/dev/null \
 			| grep 'lavfi.aphasemeter.phase' \
-			| awk -F '=' '{ sum+=$2; n++ } END { if (n>0) printf "%.2f", sum/n; else print "N/A" }')
+			| awk -F '=' '{ sum+=$2; n++ } END { if (n>0) printf "%.2f", sum/n; else print "n/a" }')
 
 		if [[ "$JSON_OUTPUT" = "false" ]]; then
 			echo "Stereo Correlation:"
@@ -245,14 +247,24 @@ for file in "${files[@]}"; do
 		if [[ "$JSON_OUTPUT" = "false" ]]; then
 			echo ""
 			echo "Loudness (EBU R128):"
-			echo "  Integrated Loudness:  ${rounded_integrated_loudness:-N/A} LUFS"
-			echo "  True Peak:            ${rounded_true_peak:-N/A} dBTP"
-			echo "  Loudness Range:       ${rounded_loudness_range:-N/A} LU"
+			echo "  Integrated Loudness:  ${rounded_integrated_loudness:-n/a} LUFS"
+			echo "  True Peak:            ${rounded_true_peak:-n/a} dBTP"
+			echo "  Loudness Range:       ${rounded_loudness_range:-n/a} LU"
 		else
 			[[ "$row" -eq 1 ]] && echo "[" > "$RESULTS_FILE"
 			echo "{"
 			echo "  \"id\": $row,"
 			echo "  \"file\": \"$(basename "$file")\","
+			if [[ "$INCLUDE_METADATA" = "true" ]]; then
+				echo "  \"genre\": \"${genre:-n/a}\","
+				echo "  \"artist\": \"${artist:-n/a}\","
+				echo "  \"album\": \"${album:-n/a}\","
+				echo "  \"track\": \"${track:-n/a}\","
+				echo "  \"date\": \"${date:-n/a}\","
+				echo "  \"sample_rate\": \"${sample_rate:-n/a} Hz\","
+				echo "  \"bit_rate\": \"${bit_rate:-n/a} bps\","
+				echo "  \"bits_per_sample\": \"${bits_per_raw_sample:-n/a}\","
+			fi
 			echo "  \"left_peak_level_db\": ${left_rounded_peak:-null},"
 			echo "  \"left_noise_floor_db\": ${left_rounded_noise:-null},"
 			echo "  \"left_crest_factor\": ${left_rounded_crest:-null},"
