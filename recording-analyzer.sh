@@ -26,37 +26,8 @@ interested in understanding the technical aspects of their audio files.
 "
 
 readonly VERSION="1.0.0"
-JSON_OUTPUT="false"
-
-while [[ $# -gt 0 ]]; do
-    case "$1" in
-		-\?|-h|--help)
-			echo "$HELP"
-			exit 0
-			;;
-		-v|--version)
-			echo "recording-analyzer.sh version $VERSION"
-			exit 0
-			;;
-        -j|--json)
-            JSON_OUTPUT="true"
-            shift
-            ;;
-        *)
-			FILE="$1"
-			shift
-			;;
-    esac
-done
-
-[[ -e "$FILE" ]] || { echo "Error: File does not exist: $FILE"; exit 1; }
-[[ -f "$FILE" ]] || { echo "Error: File is not a regular file: $FILE"; exit 1; }
-[[ -r "$FILE" ]] || { echo "Error: File not readable: $FILE"; exit 1; }
-
 RESULTS_FILE="$(mktemp)"
 readonly RESULTS_FILE
-readonly JSON_OUTPUT
-readonly FILE
 
 #
 # Spinner function to show progress while long-running task is executing
@@ -82,132 +53,196 @@ function spinner() {
     tput cnorm 1>&2
 }
 
-function long_running_task() {
-	# Run ffmpeg with astats filter to get per-channel statistics
-	ASTATS=$(ffmpeg -hide_banner -i "$FILE" -af "astats" -f null - 2>&1)
-	readonly ASTATS
+JSON_OUTPUT="false"
+POSITIONAL=()
 
-	# Check ffmpeg produced expected astats output
-	if ! grep -q "Channel:" <<< "$ASTATS"; then
-		echo "Error: ffmpeg failed to process file."
-		exit 1
-	fi
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+		-\?|-h|--help)
+			echo "$HELP"
+			exit 0
+			;;
+		-v|--version)
+			echo "recording-analyzer.sh version $VERSION"
+			exit 0
+			;;
+        -j|--json)
+            JSON_OUTPUT="true"
+            shift
+            ;;
+        *)
+			POSITIONAL+=("$1")
+			shift
+			;;
+    esac
+done
 
-	# Extract a named stat from within a specific channel block
-	function get_stat() {
-		local channel="$1"
-		local field="$2"
-			echo "$ASTATS" | awk -v ch="Channel: $channel" -v fld="$field" '
-				$0 ~ ch        { in_block=1; next }
-				in_block && /Channel:/ { in_block=0 }
-				in_block && index($0, fld) { print $NF; exit }
-			'
-	}
+readonly JSON_OUTPUT
 
-	# Detect number of channels
-	NUM_CHANNELS=$(echo "$ASTATS" | grep -c "Channel: [0-9]")
-	if [[ "$NUM_CHANNELS" -ne 2 ]]; then
-		echo "Error: not a stereo file."
-		exit 1
-	fi
+set -- "${POSITIONAL[@]}"
 
-	# Run loudnorm and capture JSON output
-	LOUDNORM=$(ffmpeg -hide_banner -i "$FILE" -af loudnorm=print_format=json -f null - 2>&1 | awk '/^{/,/^}/')
-	readonly LOUDNORM
+# If multiple args received, shell already expanded the glob
+if [[ $# -gt 1 ]]; then
+    files=("$@")
+elif [[ $# -eq 1 ]]; then
+    # Single arg — treat as a pattern to expand ourselves
+    pattern="$1"
+    expanded="${pattern/#\~/$HOME}"
+    dir=$(dirname "$expanded")
+    glob=$(basename "$expanded")
 
-	# Extract a field from the loudnorm JSON
-	function get_loudnorm() {
-		local field="$1"
-		echo "$LOUDNORM" | grep "\"$field\"" | awk -F'"' '{print $4}'
-	}
+    readarray -d '' files < <(find "$dir" -maxdepth 1 -name "$glob" -print0 | sort -z)
+else
+    echo "Usage: $0 <pattern>  (e.g. \"~/Music/*.flac\")" >&2
+    exit 1
+fi
 
-	# Print header and per-channel stats to results file
-	if [[ "$JSON_OUTPUT" = "false" ]]; then
-		echo ""
-		TEXT="Audio Analysis: \"$FILE\""
-		echo "$TEXT"
-		printf '=%.0s' $(seq 1 ${#TEXT})
-		echo ""
-	fi
+if [[ ${#files[@]} -eq 0 ]]; then
+    echo "No files found" >&2
+    exit 1
+fi
 
-	# Per-channel stats
-	left_peak=$(get_stat 1 "Peak level dB")
-	left_noise=$(get_stat 1 "Noise floor dB")
-	left_crest=$(get_stat 1 "Crest factor")
+row=1
 
-	left_rounded_peak=$(printf "%.2f" "$left_peak")
-	left_rounded_noise=$(printf "%.2f" "$left_noise")
-	left_rounded_crest=$(printf "%.2f" "$left_crest")
+for file in "${files[@]}"; do
+	[[ -e "$file" ]] || { echo "Error: File does not exist: $file"; exit 1; }
+	[[ -f "$file" ]] || { echo "Error: File is not a regular file: $file"; exit 1; }
+	[[ -r "$file" ]] || { echo "Error: File not readable: $file"; exit 1; }
 
-	right_peak=$(get_stat 2 "Peak level dB")
-	right_noise=$(get_stat 2 "Noise floor dB")
-	right_crest=$(get_stat 2 "Crest factor")
+	function long_running_task() {
+		# Run ffmpeg with astats filter to get per-channel statistics
+		ASTATS=$(ffmpeg -hide_banner -i "$file" -af "astats" -f null - 2>&1)
+		readonly ASTATS
 
-	right_rounded_peak=$(printf "%.2f" "$right_peak")
-	right_rounded_noise=$(printf "%.2f" "$right_noise")
-	right_rounded_crest=$(printf "%.2f" "$right_crest")
+		# Check ffmpeg produced expected astats output
+		if ! grep -q "Channel:" <<< "$ASTATS"; then
+			echo "Error: ffmpeg failed to process file."
+			exit 1
+		fi
 
-	if [[ "$JSON_OUTPUT" = "false" ]]; then
-		echo ""
-		echo "Left Channel:"
-		echo "  Peak Level:     ${left_rounded_peak:-N/A} dBFS"
-		echo "  Noise Floor:    ${left_rounded_noise:-N/A} dBFS"
-		echo "  Crest Factor:   ${left_rounded_crest:-N/A}"
-		echo ""
-		echo "Right Channel:"
-		echo "  Peak Level:     ${right_rounded_peak:-N/A} dBFS"
-		echo "  Noise Floor:    ${right_rounded_noise:-N/A} dBFS"
-		echo "  Crest Factor:   ${right_rounded_crest:-N/A}"
-		echo ""
-	fi
+		# Extract a named stat from within a specific channel block
+		function get_stat() {
+			local channel="$1"
+			local field="$2"
+				echo "$ASTATS" | awk -v ch="Channel: $channel" -v fld="$field" '
+					$0 ~ ch        { in_block=1; next }
+					in_block && /Channel:/ { in_block=0 }
+					in_block && index($0, fld) { print $NF; exit }
+				'
+		}
 
-	# Stereo correlation (only meaningful for stereo files)
-	average_phase=$(ffmpeg -hide_banner -i "$FILE" -af "aphasemeter=video=0,ametadata=print:file=-" -f null - 2>/dev/null \
-		| grep 'lavfi.aphasemeter.phase' \
-		| awk -F '=' '{ sum+=$2; n++ } END { if (n>0) printf "%.2f", sum/n; else print "N/A" }')
+		# Detect number of channels
+		NUM_CHANNELS=$(echo "$ASTATS" | grep -c "Channel: [0-9]")
+		if [[ "$NUM_CHANNELS" -ne 2 ]]; then
+			echo "Error: not a stereo file."
+			exit 1
+		fi
 
-	if [[ "$JSON_OUTPUT" = "false" ]]; then
-		echo "Stereo Correlation:"
-		echo "  Average Phase:  $average_phase degrees"
-	fi
+		# Run loudnorm and capture JSON output
+		LOUDNORM=$(ffmpeg -hide_banner -i "$file" -af loudnorm=print_format=json -f null - 2>&1 | awk '/^{/,/^}/')
+		readonly LOUDNORM
 
-	integrated_loudness=$(get_loudnorm "input_i")
-	true_peak=$(get_loudnorm "input_tp")
-	loudness_range=$(get_loudnorm "input_lra")
+		# Extract a field from the loudnorm JSON
+		function get_loudnorm() {
+			local field="$1"
+			echo "$LOUDNORM" | grep "\"$field\"" | awk -F'"' '{print $4}'
+		}
 
-	rounded_integrated_loudness=$(printf "%.2f" "$integrated_loudness")
-	rounded_true_peak=$(printf "%.2f" "$true_peak")
-	rounded_loudness_range=$(printf "%.2f" "$loudness_range")
+		# Print header and per-channel stats to results file
+		if [[ "$JSON_OUTPUT" = "false" ]]; then
+			echo ""
+			TEXT="Audio Analysis: \"$file\""
+			echo "$TEXT"
+			printf '=%.0s' $(seq 1 ${#TEXT})
+			echo ""
+		fi
 
-	if [[ "$JSON_OUTPUT" = "false" ]]; then
-		echo ""
-		echo "Loudness (EBU R128):"
-		echo "  Integrated Loudness:  ${rounded_integrated_loudness:-N/A} LUFS"
-		echo "  True Peak:            ${rounded_true_peak:-N/A} dBTP"
-		echo "  Loudness Range:       ${rounded_loudness_range:-N/A} LU"
-	else
-		echo "{"
-		echo "  \"file\": \"$(basename "$FILE")\","
-		echo "  \"left_peak_level_db\": ${left_rounded_peak:-null},"
-		echo "  \"left_noise_floor_db\": ${left_rounded_noise:-null},"
-		echo "  \"left_crest_factor\": ${left_rounded_crest:-null}"
-		echo "  \"right_peak_level_db\": ${right_rounded_peak:-null},"
-		echo "  \"right_noise_floor_db\": ${right_rounded_noise:-null},"
-		echo "  \"right_crest_factor\": ${right_rounded_crest:-null},"
-		echo "  \"average_phase_degrees\": ${average_phase:-null},"
-		echo "  \"integrated_loudness_lufs\": ${rounded_integrated_loudness:-null},"
-		echo "  \"true_peak_db\": ${rounded_true_peak:-null},"
-		echo "  \"loudness_range_lu\": ${rounded_loudness_range:-null}"
-		echo "},"
-	fi
-} > "$RESULTS_FILE"
+		# Per-channel stats
+		left_peak=$(get_stat 1 "Peak level dB")
+		left_noise=$(get_stat 1 "Noise floor dB")
+		left_crest=$(get_stat 1 "Crest factor")
 
-# Run task in background, capture PID, spin until done
-long_running_task &
-TASK_PID=$!
-spinner $TASK_PID "Processing \"$(basename "$FILE")\""
-wait $TASK_PID
+		left_rounded_peak=$(printf "%.2f" "$left_peak")
+		left_rounded_noise=$(printf "%.2f" "$left_noise")
+		left_rounded_crest=$(printf "%.2f" "$left_crest")
 
-echo "" >> "$RESULTS_FILE"
+		right_peak=$(get_stat 2 "Peak level dB")
+		right_noise=$(get_stat 2 "Noise floor dB")
+		right_crest=$(get_stat 2 "Crest factor")
+
+		right_rounded_peak=$(printf "%.2f" "$right_peak")
+		right_rounded_noise=$(printf "%.2f" "$right_noise")
+		right_rounded_crest=$(printf "%.2f" "$right_crest")
+
+		if [[ "$JSON_OUTPUT" = "false" ]]; then
+			echo ""
+			echo "Left Channel:"
+			echo "  Peak Level:     ${left_rounded_peak:-N/A} dBFS"
+			echo "  Noise Floor:    ${left_rounded_noise:-N/A} dBFS"
+			echo "  Crest Factor:   ${left_rounded_crest:-N/A}"
+			echo ""
+			echo "Right Channel:"
+			echo "  Peak Level:     ${right_rounded_peak:-N/A} dBFS"
+			echo "  Noise Floor:    ${right_rounded_noise:-N/A} dBFS"
+			echo "  Crest Factor:   ${right_rounded_crest:-N/A}"
+			echo ""
+		fi
+
+		# Stereo correlation (only meaningful for stereo files)
+		average_phase=$(ffmpeg -hide_banner -i "$file" -af "aphasemeter=video=0,ametadata=print:file=-" -f null - 2>/dev/null \
+			| grep 'lavfi.aphasemeter.phase' \
+			| awk -F '=' '{ sum+=$2; n++ } END { if (n>0) printf "%.2f", sum/n; else print "N/A" }')
+
+		if [[ "$JSON_OUTPUT" = "false" ]]; then
+			echo "Stereo Correlation:"
+			echo "  Average Phase:  $average_phase degrees"
+		fi
+
+		integrated_loudness=$(get_loudnorm "input_i")
+		true_peak=$(get_loudnorm "input_tp")
+		loudness_range=$(get_loudnorm "input_lra")
+
+		rounded_integrated_loudness=$(printf "%.2f" "$integrated_loudness")
+		rounded_true_peak=$(printf "%.2f" "$true_peak")
+		rounded_loudness_range=$(printf "%.2f" "$loudness_range")
+
+		if [[ "$JSON_OUTPUT" = "false" ]]; then
+			echo ""
+			echo "Loudness (EBU R128):"
+			echo "  Integrated Loudness:  ${rounded_integrated_loudness:-N/A} LUFS"
+			echo "  True Peak:            ${rounded_true_peak:-N/A} dBTP"
+			echo "  Loudness Range:       ${rounded_loudness_range:-N/A} LU"
+		else
+			echo "{"
+			echo "  \"id\": $row,"
+			echo "  \"file\": \"$(basename "$file")\","
+			echo "  \"left_peak_level_db\": ${left_rounded_peak:-null},"
+			echo "  \"left_noise_floor_db\": ${left_rounded_noise:-null},"
+			echo "  \"left_crest_factor\": ${left_rounded_crest:-null},"
+			echo "  \"right_peak_level_db\": ${right_rounded_peak:-null},"
+			echo "  \"right_noise_floor_db\": ${right_rounded_noise:-null},"
+			echo "  \"right_crest_factor\": ${right_rounded_crest:-null},"
+			echo "  \"average_phase_degrees\": ${average_phase:-null},"
+			echo "  \"integrated_loudness_lufs\": ${rounded_integrated_loudness:-null},"
+			echo "  \"true_peak_db\": ${rounded_true_peak:-null},"
+			echo "  \"loudness_range_lu\": ${rounded_loudness_range:-null}"
+			echo "},"
+		fi
+	} >> "$RESULTS_FILE"
+
+	# Run task in background, capture PID, spin until done
+	long_running_task &
+	TASK_PID=$!
+	spinner $TASK_PID "Processing \"$(basename "$file")\""
+	wait $TASK_PID
+	row=$((row + 1))
+done
+
+if [[ "$JSON_OUTPUT" = "false" ]]; then
+    echo "" >> "$RESULTS_FILE"
+else
+    sed --in-place '$ s/,$//' "$RESULTS_FILE"
+fi
+
 cat "$RESULTS_FILE"
 rm -f "$RESULTS_FILE" 2> /dev/null
