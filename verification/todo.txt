@@ -51,3 +51,11 @@
 - does setting a threshold to 100% break anything?
 
 - can threshold be set to -12% or 110%?
+
+- allow RE for filename
+
+- add metadata option
+
+- build tabulator website to read in json data
+
+- export to spreadsheet format
