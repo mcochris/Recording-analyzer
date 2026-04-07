@@ -54,6 +54,7 @@ function spinner() {
 }
 
 JSON_OUTPUT="false"
+INCLUDE_METADATA="false"
 POSITIONAL=()
 
 while [[ $# -gt 0 ]]; do
@@ -70,6 +71,10 @@ while [[ $# -gt 0 ]]; do
             JSON_OUTPUT="true"
             shift
             ;;
+        -m|--metadata)
+            INCLUDE_METADATA="true"
+            shift
+            ;;
         *)
 			POSITIONAL+=("$1")
 			shift
@@ -78,6 +83,7 @@ while [[ $# -gt 0 ]]; do
 done
 
 readonly JSON_OUTPUT
+readonly INCLUDE_METADATA
 
 set -- "${POSITIONAL[@]}"
 
@@ -114,11 +120,19 @@ for file in "${files[@]}"; do
 		ASTATS=$(ffmpeg -hide_banner -i "$file" -af "astats" -f null - 2>&1)
 		readonly ASTATS
 
+		FFPROBE=$(ffprobe -v quiet -print_format json -show_format -show_streams "$file" 2> /dev/null)
+		readonly FFPROBE
+
 		# Check ffmpeg produced expected astats output
 		if ! grep -q "Channel:" <<< "$ASTATS"; then
 			echo "Error: ffmpeg failed to process file."
 			exit 1
 		fi
+
+		function get_metadata() {
+			local field="$1"
+			echo "$FFPROBE" | grep "$field" | head -n 1 | awk -F '"' '{print $4}' || true
+		}
 
 		# Extract a named stat from within a specific channel block
 		function get_stat() {
@@ -155,6 +169,28 @@ for file in "${files[@]}"; do
 			echo "$TEXT"
 			printf '=%.0s' $(seq 1 ${#TEXT})
 			echo ""
+		fi
+
+		if [[ "$INCLUDE_METADATA" = "true" ]]; then
+			genre=$(get_metadata "genre")
+			artist=$(get_metadata "artist")
+			album=$(get_metadata "album")
+			date=$(get_metadata "date")
+			sample_rate=$(get_metadata "sample_rate")
+			bit_rate=$(get_metadata "bit_rate")
+			bits_per_raw_sample=$(get_metadata "bits_per_raw_sample")
+
+			if [[ "$JSON_OUTPUT" = "false" ]]; then
+				echo ""
+				echo "Metadata:"
+				echo "  Genre:           ${genre:-N/A}"
+				echo "  Artist:          ${artist:-N/A}"
+				echo "  Album:           ${album:-N/A}"
+				echo "  Date:            ${date:-N/A}"
+				echo "  Sample Rate:     ${sample_rate:-N/A} Hz"
+				echo "  Bit Rate:        ${bit_rate:-N/A} bps"
+				echo "  Bits Per Sample: ${bits_per_raw_sample:-N/A}"
+			fi
 		fi
 
 		# Per-channel stats
@@ -213,6 +249,7 @@ for file in "${files[@]}"; do
 			echo "  True Peak:            ${rounded_true_peak:-N/A} dBTP"
 			echo "  Loudness Range:       ${rounded_loudness_range:-N/A} LU"
 		else
+			[[ "$row" -eq 1 ]] && echo "[" > "$RESULTS_FILE"
 			echo "{"
 			echo "  \"id\": $row,"
 			echo "  \"file\": \"$(basename "$file")\","
@@ -242,6 +279,7 @@ if [[ "$JSON_OUTPUT" = "false" ]]; then
     echo "" >> "$RESULTS_FILE"
 else
     sed --in-place '$ s/,$//' "$RESULTS_FILE"
+    echo "]" >> "$RESULTS_FILE"
 fi
 
 cat "$RESULTS_FILE"
