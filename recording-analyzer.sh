@@ -25,9 +25,9 @@ interested in understanding the technical aspects of their audio files.
 
 JSON output format is available for easy integration with other tools or for
 further processing. Metadata fields can also be included in the output for a
-more comprehensive analysis. Upload your audio files to the web interface at
-https://mcochris.com/index.html/ to view interactive visualizations of these
-statistics.
+more comprehensive analysis. Upload the JSON output of your audio files to the
+web interface at https://mcochris.com/ to view an interactive visualization of
+the statistics, create playlists and spreadsheets based on the analysis results.
 
 Options:
   -h, --help        Show this help message and exit
@@ -49,7 +49,9 @@ Options:
 	# Analyze multiple files with JSON output and metadata included
 	recording-analyzer.sh -j -m ~/Music/*.flac
 
-	Additional help at: https://mcochris/cli-help.html
+	# Analyze files and redirect JSON output to a file for use with the web
+	# interface at https://mcochris.com/
+	recording-analyzer.sh -j -m ~/Music/*.flac > analysis_results.json
 
 	Questions, issues, or suggestions? Please open a support ticket at:
 	https://github.com/mcochris/Recording-analyzer/issues
