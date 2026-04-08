@@ -134,6 +134,10 @@ for file in "${files[@]}"; do
 			echo "$FFPROBE" | grep "$field" | head -n 1 | awk -F '"' '{print $4}' || true
 		}
 
+		function get_duration() {
+			echo "$FFPROBE" | grep '"duration"' | tail -n 1 | awk -F '"' '{printf "%.0f", $4}' || true
+		}
+
 		# Extract a named stat from within a specific channel block
 		function get_stat() {
 			local channel="$1"
@@ -175,11 +179,12 @@ for file in "${files[@]}"; do
 			genre=$(get_metadata "genre")
 			artist=$(get_metadata "artist")
 			album=$(get_metadata "album")
-			date=$(get_metadata "date")
+			track=$(get_metadata "track")
+			duration=$(get_duration)
+			year=$(get_metadata "date")
 			sample_rate=$(get_metadata "sample_rate")
 			bit_rate=$(get_metadata "bit_rate")
 			bits_per_raw_sample=$(get_metadata "bits_per_raw_sample")
-			track=$(get_metadata "track")
 
 			if [[ "$JSON_OUTPUT" = "false" ]]; then
 				echo ""
@@ -188,7 +193,8 @@ for file in "${files[@]}"; do
 				echo "  Artist:          ${artist:-n/a}"
 				echo "  Album:           ${album:-n/a}"
 				echo "  Track:           ${track:-n/a}"
-				echo "  Date:            ${date:-n/a}"
+				echo "  Duration:        ${duration:-n/a} seconds"
+				echo "  Year:            ${year:-n/a}"
 				echo "  Sample Rate:     ${sample_rate:-n/a} Hz"
 				echo "  Avg. Bit Rate:   ${bit_rate:-n/a} bps"
 				echo "  Bits Per Sample: ${bits_per_raw_sample:-n/a}"
@@ -217,12 +223,12 @@ for file in "${files[@]}"; do
 			echo "Left Channel:"
 			echo "  Peak Level:     ${left_rounded_peak:-n/a} dBFS"
 			echo "  Noise Floor:    ${left_rounded_noise:-n/a} dBFS"
-			echo "  Crest Factor:   ${left_rounded_crest:-n/a}"
+			echo "  Crest Factor:   ${left_rounded_crest:-n/a}°"
 			echo ""
 			echo "Right Channel:"
 			echo "  Peak Level:     ${right_rounded_peak:-n/a} dBFS"
 			echo "  Noise Floor:    ${right_rounded_noise:-n/a} dBFS"
-			echo "  Crest Factor:   ${right_rounded_crest:-n/a}"
+			echo "  Crest Factor:   ${right_rounded_crest:-n/a}°"
 			echo ""
 		fi
 
@@ -254,39 +260,41 @@ for file in "${files[@]}"; do
 			[[ "$row" -eq 1 ]] && echo "[" > "$RESULTS_FILE"
 			echo "{"
 			echo "  \"id\": $row,"
+			[[ "$INCLUDE_METADATA" = "true" ]] && echo "  \"path\": \"$(dirname "$file")\","
 			echo "  \"file\": \"$(basename "$file")\","
 			if [[ "$INCLUDE_METADATA" = "true" ]]; then
 				echo "  \"genre\": \"${genre:-n/a}\","
 				echo "  \"artist\": \"${artist:-n/a}\","
 				echo "  \"album\": \"${album:-n/a}\","
-				echo "  \"track\": \"${track:-n/a}\","
-				echo "  \"date\": \"${date:-n/a}\","
-				echo "  \"sample_rate\": \"${sample_rate:-n/a} Hz\","
-				echo "  \"bit_rate\": \"${bit_rate:-n/a} bps\","
-				echo "  \"bits_per_sample\": \"${bits_per_raw_sample:-n/a}\","
+				echo "  \"track\": ${track:-\"n/a\"},"
+				echo "  \"duration\": ${duration:-\"n/a\"},"
+				echo "  \"year\": ${year:-\"n/a\"},"
+				echo "  \"sample_rate\": ${sample_rate:-\"n/a\"},"
+				echo "  \"bit_rate\": ${bit_rate:-\"n/a\"},"
+				echo "  \"bits_per_sample\": ${bits_per_raw_sample:-\"n/a\"},"
 			fi
-			echo "  \"left_peak_level_db\": ${left_rounded_peak:-null},"
+			echo "  \"left_peak_level_db\": ${left_rounded_peak:-\"n/a\"},"
 
 			if [[ "$left_rounded_noise" = "-inf" ]]; then
 				echo "  \"left_noise_floor_db\": \"-inf\","
 			else
-				echo "  \"left_noise_floor_db\": ${left_rounded_noise:-null},"
+				echo "  \"left_noise_floor_db\": ${left_rounded_noise:-\"n/a\"},"
 			fi
 
-			echo "  \"left_crest_factor\": ${left_rounded_crest:-null},"
-			echo "  \"right_peak_level_db\": ${right_rounded_peak:-null},"
+			echo "  \"left_crest_factor\": ${left_rounded_crest:-\"n/a\"},"
+			echo "  \"right_peak_level_db\": ${right_rounded_peak:-\"n/a\"},"
 
 			if [[ "$right_rounded_noise" = "-inf" ]]; then
 				echo "  \"right_noise_floor_db\": \"-inf\","
 			else
-				echo "  \"right_noise_floor_db\": ${right_rounded_noise:-null},"
+				echo "  \"right_noise_floor_db\": ${right_rounded_noise:-\"n/a\"},"
 			fi
 
-			echo "  \"right_crest_factor\": ${right_rounded_crest:-null},"
-			echo "  \"average_phase_degrees\": ${average_phase:-null},"
-			echo "  \"integrated_loudness_lufs\": ${rounded_integrated_loudness:-null},"
-			echo "  \"true_peak_db\": ${rounded_true_peak:-null},"
-			echo "  \"loudness_range_lu\": ${rounded_loudness_range:-null}"
+			echo "  \"right_crest_factor\": ${right_rounded_crest:-\"n/a\"},"
+			echo "  \"average_phase_degrees\": ${average_phase:-\"n/a\"},"
+			echo "  \"integrated_loudness_lufs\": ${rounded_integrated_loudness:-\"n/a\"},"
+			echo "  \"true_peak_db\": ${rounded_true_peak:-\"n/a\"},"
+			echo "  \"loudness_range_lu\": ${rounded_loudness_range:-\"n/a\"}"
 			echo "},"
 		fi
 	} >> "$RESULTS_FILE"
