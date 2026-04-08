@@ -266,10 +266,22 @@ for file in "${files[@]}"; do
 				echo "  \"bits_per_sample\": \"${bits_per_raw_sample:-n/a}\","
 			fi
 			echo "  \"left_peak_level_db\": ${left_rounded_peak:-null},"
-			echo "  \"left_noise_floor_db\": ${left_rounded_noise:-null},"
+
+			if [[ "$left_rounded_noise" = "-inf" ]]; then
+				echo "  \"left_noise_floor_db\": \"-inf\","
+			else
+				echo "  \"left_noise_floor_db\": ${left_rounded_noise:-null},"
+			fi
+
 			echo "  \"left_crest_factor\": ${left_rounded_crest:-null},"
 			echo "  \"right_peak_level_db\": ${right_rounded_peak:-null},"
-			echo "  \"right_noise_floor_db\": ${right_rounded_noise:-null},"
+
+			if [[ "$right_rounded_noise" = "-inf" ]]; then
+				echo "  \"right_noise_floor_db\": \"-inf\","
+			else
+				echo "  \"right_noise_floor_db\": ${right_rounded_noise:-null},"
+			fi
+
 			echo "  \"right_crest_factor\": ${right_rounded_crest:-null},"
 			echo "  \"average_phase_degrees\": ${average_phase:-null},"
 			echo "  \"integrated_loudness_lufs\": ${rounded_integrated_loudness:-null},"
