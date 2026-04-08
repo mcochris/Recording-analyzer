@@ -91,7 +91,7 @@ POSITIONAL=()
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
-		-\?|-h|--help)
+		help|-h|--help)
 			echo "$HELP"
 			exit 0
 			;;
