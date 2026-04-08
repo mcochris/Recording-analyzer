@@ -17,12 +17,42 @@ readonly HELP="
 Audio Recording Analyzer
 
 Usage: recording-analyzer.sh <audio_file>
-Example: recording-analyzer.sh recording.wav
 
 This program is used to analyze an audio file and extract various statistics.
 The script provides insights into the quality and characteristics of the
 recording, which can be useful for audio engineers, musicians, and anyone
 interested in understanding the technical aspects of their audio files.
+
+JSON output format is available for easy integration with other tools or for
+further processing. Metadata fields can also be included in the output for a
+more comprehensive analysis. Upload your audio files to the web interface at
+https://mcochris.com/index.html/ to view interactive visualizations of these
+statistics.
+
+Options:
+  -h, --help        Show this help message and exit
+  -v, --version     Show program version and exit
+  -j, --json        Output results in JSON format (default: human-readable text)
+  -m, --metadata    Include metadata fields (genre, artist, album, track,
+                    duration, year, sample rate, bit rate) in output
+
+  Examples:
+	# Analyze a single file with human-readable output
+	recording-analyzer.sh ~/Music/track.flac
+
+	# Analyze multiple files with JSON output
+	recording-analyzer.sh -j ~/Music/*.flac
+
+	# Analyze a single file with metadata included
+	recording-analyzer.sh -m ~/Music/track.flac
+
+	# Analyze multiple files with JSON output and metadata included
+	recording-analyzer.sh -j -m ~/Music/*.flac
+
+	Additional help at: https://mcochris/cli-help.html
+
+	Questions, issues, or suggestions? Please open a support ticket at:
+	https://github.com/mcochris/Recording-analyzer/issues
 "
 
 readonly VERSION="1.0.0"
