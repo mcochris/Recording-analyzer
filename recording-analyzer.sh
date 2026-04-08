@@ -337,6 +337,10 @@ for file in "${files[@]}"; do
 	spinner $TASK_PID "Processing \"$(basename "$file")\""
 	wait $TASK_PID
 	row=$((row + 1))
+	if [[ "$row" -gt 100 ]]; then
+		echo "Error: Processing limit is 100." >&2
+		break
+	fi
 done
 
 if [[ "$JSON_OUTPUT" = "false" ]]; then
