@@ -16,10 +16,6 @@
 
 - check audio file suffix, don't try to process files we can't handle, generate other formats with ffmpeg (done)
 
-- run main program on all my audio files as test
-
-- run verification on all my audio files as a test
-
 - test on WSL (done)
 
 - test on FreeBSD (later)
@@ -46,16 +42,45 @@
 
 - sox can't do aac or m4a (ok)
 
+- allow RE for filename (DONE, restricted to globbing)
+
+- add metadata option (DONE)
+
+- build tabulator website to read in json data (DONE)
+
+- export to spreadsheet format (DONE)
+
+- name playlist files "artist - album.m3u8" (NOPE - playlist may contain multiple artists/albums)
+
+- add "Processing # of # to pgm msg, e.g. Processing file 3 of 10 "Computer Love.flac"... (DONE)
+
+- add -q option for no messages, helps when piping find cmd into pgm in background (DONE)
+
+- playlists only created per tabulator page, can't span pages (FIXED - turned of pagination)
+
+==============================================================================
+
+- run main program on all my audio files as test
+
+- run verification on all my audio files as a test
+
 - does setting a threshold to 0% break anything?
 
 - does setting a threshold to 100% break anything?
 
 - can threshold be set to -12% or 110%?
 
-- allow RE for filename
+- add find command helper pgm to pipe to recording-analyzer
 
-- add metadata option
+- add a FAQ:
+	- why does it take so long to process a file?
+	- how do i get the pgm into a dir in my $PATH?
+	- if i upload my json, will you store any data?
+	- do you keep any logs?
+	- how do i get to the files on my NAS?
 
-- build tabulator website to read in json data
-
-- export to spreadsheet format
+- reasons i made this:
+	- eval my recordings for gain levels and noise
+	- find genres/dynamic range to make custom playlists
+	- create spreadsheet of my songs
+	- find files with missing metadata
