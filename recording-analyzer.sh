@@ -26,12 +26,14 @@ interested in understanding the technical aspects of their audio files.
 JSON output format is available for easy integration with other tools or for
 further processing. Metadata fields can also be included in the output for a
 more comprehensive analysis. Upload the JSON output of your audio files to the
-web interface at https://mcochris.com/ to view an interactive visualization of
-the statistics, create playlists and spreadsheets based on the analysis results.
+web interface at https://mcochris.com/recording-analyzer/ to view an interactive
+visualization of the statistics, create playlists and spreadsheets based on the
+analysis results.
 
 Options:
   -h, --help        Show this help message and exit
   -v, --version     Show program version and exit
+  -q, --quiet       Suppress progress spinner and other non-essential output
   -j, --json        Output results in JSON format (default: human-readable text)
   -m, --metadata    Include metadata fields (genre, artist, album, track,
                     duration, year, sample rate, bit rate) in output
@@ -50,13 +52,14 @@ Options:
 	recording-analyzer.sh -j -m ~/Music/*.flac
 
 	# Analyze files and redirect JSON output to a file for use with the web
-	# interface at https://mcochris.com/
+	# interface at https://mcochris.com/recording-analyzer/
 	recording-analyzer.sh -j -m ~/Music/*.flac > analysis_results.json
 
 	Questions, issues, or suggestions? Please open a support ticket at:
 	https://github.com/mcochris/Recording-analyzer/issues
 "
 
+readonly PROCESSING_LIMIT=100
 readonly VERSION="1.0.0"
 RESULTS_FILE="$(mktemp)"
 readonly RESULTS_FILE
@@ -88,6 +91,7 @@ function spinner() {
 JSON_OUTPUT="false"
 INCLUDE_METADATA="false"
 POSITIONAL=()
+QUIET="false"
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -107,6 +111,10 @@ while [[ $# -gt 0 ]]; do
             INCLUDE_METADATA="true"
             shift
             ;;
+		-q|--quiet)
+			QUIET="true"
+			shift
+			;;
         *)
 			POSITIONAL+=("$1")
 			shift
@@ -116,7 +124,7 @@ done
 
 readonly JSON_OUTPUT
 readonly INCLUDE_METADATA
-
+readonly QUIET
 set -- "${POSITIONAL[@]}"
 
 # If multiple args received, shell already expanded the glob
@@ -138,6 +146,10 @@ fi
 if [[ ${#files[@]} -eq 0 ]]; then
     echo "No files found" >&2
     exit 1
+fi
+
+if [[ ${#files[@]} -gt $PROCESSING_LIMIT ]]; then
+    echo "WARNING: Processing limited to $PROCESSING_LIMIT files." >&2
 fi
 
 row=1
@@ -334,11 +346,10 @@ for file in "${files[@]}"; do
 	# Run task in background, capture PID, spin until done
 	long_running_task &
 	TASK_PID=$!
-	spinner $TASK_PID "Processing \"$(basename "$file")\""
+	[[ "$QUIET" = "false" ]] && spinner $TASK_PID "Processing file $row of ${#files[@]}: \"$(basename "$file")\""
 	wait $TASK_PID
 	row=$((row + 1))
-	if [[ "$row" -gt 100 ]]; then
-		echo "Error: Processing limit is 100." >&2
+	if [[ "$row" -gt $PROCESSING_LIMIT ]]; then
 		break
 	fi
 done
@@ -351,4 +362,9 @@ else
 fi
 
 cat "$RESULTS_FILE"
+
+if [[ "$row" -gt $PROCESSING_LIMIT ]]; then
+	echo "WARNING: Processing limited to $PROCESSING_LIMIT files." >&2
+fi
+
 rm -f "$RESULTS_FILE" 2> /dev/null
