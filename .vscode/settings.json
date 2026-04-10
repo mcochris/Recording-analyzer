@@ -14,6 +14,7 @@
 		"flac",
 		"HVAC",
 		"intersample",
+		"iregex",
 		"lavfi",
 		"libsox",
 		"loudgain",
@@ -23,8 +24,11 @@
 		"numpy",
 		"peakiness",
 		"pgms",
+		"regextype",
 		"samplerate",
 		"scriptable",
-		"soundfile"
+		"soundfile",
+		"spacebar",
+		"subdirs"
 	]
 }
