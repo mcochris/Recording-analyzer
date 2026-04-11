@@ -31,8 +31,8 @@ If you only want to analyze a specific set of files and not a directory of
 files, please use recording-analyzer.sh directly with the appropriate
 options and file paths. For example:
 
-  # Analyze all FLAC files in the Music directory with metadata included
-  recording-analyzer.sh --metadata ~/Music/*.flac
+  # Analyze a single file with human-readable output
+	recording-analyzer.sh ~/Music/track.flac
 
 ez-analyzer options:
   -h, --help        Show this help message and exit
