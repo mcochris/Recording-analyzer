@@ -137,7 +137,7 @@ elif [[ $# -eq 1 ]]; then
     dir=$(dirname "$expanded")
     glob=$(basename "$expanded")
 
-    readarray -d '' files < <(find "$dir" -maxdepth 1 -name "$glob" -print0 | sort -z)
+    mapfile -d '' files < <(find "$dir" -maxdepth 1 -name "$glob" -print0 | sort -z)
 else
     echo "Usage: $0 <pattern>  (e.g. \"~/Music/*.flac\")" >&2
     exit 1
