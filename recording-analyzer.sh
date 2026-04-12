@@ -66,12 +66,12 @@ Options:
 	# Analyze music files and redirect JSON output to a file for use with the web
 	# interface at https://mcochris.com/recording-analyzer/
 	$THIS_PGM --json --metadata ~/Music/*.flac > analysis_results.json
-is there a
-	Questions, issues, or suggestions? Please open a support ticket at:
+
+	Questions, issues, suggestions? Please open a support ticket at:
 	https://github.com/mcochris/Recording-analyzer/issues
 "
 
-readonly PROCESSING_LIMIT=100
+#readonly PROCESSING_LIMIT=100
 readonly VERSION="1.0.0"
 readonly DEFAULT_EXTENSIONS=("aac" "ac3" "aif" "aiff" "amr" "caf" "flac" "m4a" "mp3" "ogg" "opus" "pcm" "wav" "wma")
 
@@ -188,7 +188,6 @@ function collect_audio_files() {
     # Process each positional argument
     local arg
     for arg in "${args[@]}"; do
-
         # Expand ~ manually since it won't expand inside a variable
         arg="${arg/#\~/$HOME}"
 
@@ -224,7 +223,6 @@ function collect_audio_files() {
                 echo "Warning: no matches found for: $arg" >&2
             fi
         fi
-
     done
 
     # Remove duplicates while preserving order
@@ -323,7 +321,7 @@ done
 readonly find_args
 
 collect_audio_files "${RECURSE_FLAG[@]}" -- "${POSITIONAL[@]}"
-[[ ${#AUDIO_FILES[@]} -gt $PROCESSING_LIMIT ]] && echo "$THIS_PGM: WARNING: Processing will be limited to $PROCESSING_LIMIT files." >&2
+#[[ ${#AUDIO_FILES[@]} -gt $PROCESSING_LIMIT ]] && echo "$THIS_PGM: WARNING: Processing will be limited to $PROCESSING_LIMIT files." >&2
 
 #
 # Loop through all the files
@@ -523,9 +521,9 @@ for file in "${AUDIO_FILES[@]}"; do
 	[[ "$QUIET" = "false" ]] && spinner $TASK_PID "Processing file $row of ${#AUDIO_FILES[@]}: \"$(basename "$file")\""
 	wait $TASK_PID
 	row=$((row + 1))
-	if [[ "$row" -gt $PROCESSING_LIMIT ]]; then
-		break
-	fi
+	#if [[ "$row" -gt $PROCESSING_LIMIT ]]; then
+	#	break
+	#fi
 done
 
 #
@@ -538,15 +536,24 @@ else
     echo "]" >> "$RESULTS_FILE"
 fi
 
+#
+# Display results
+#
 if [[ -s "$RESULTS_FILE" ]]; then
 	cat "$RESULTS_FILE"
 else
 	error_log "No results to display"
 fi
 
-[[ "$row" -gt $PROCESSING_LIMIT ]] && echo "WARNING: Processing was limited to $PROCESSING_LIMIT files." >&2
+#
+# Display any warnings about processing limits and show error logs if present
+#
+#[[ "$row" -gt $PROCESSING_LIMIT ]] && echo "WARNING: Processing was limited to $PROCESSING_LIMIT files." >&2
 
 [[ -s "$ERROR_LOG" ]] && cat "$ERROR_LOG" >&2
 
+#
+# Cleanup temporary files (also handled by trap on EXIT)
+#
 rm --force "$RESULTS_FILE" 2> /dev/null
 rm --force "$ERROR_LOG" 2> /dev/null
