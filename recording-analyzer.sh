@@ -16,11 +16,17 @@ readonly THIS_PGM
 [[ $# -eq 0 ]] && { echo "Usage: $THIS_PGM <audio_file>"; exit 1; }
 
 readonly HELP="
-Audio Recording Analyzer
+╭──────────────────────────────────────────────────────────────────────────────╮
+│                                                                              │
+│                        Welcome to recording-analyzer!                        │
+│                                                                              │
+╰──────────────────────────────────────────────────────────────────────────────╯
 
 Usage: $THIS_PGM <audio_file>
+       - or -
+	   $THIS_PGM <directory>
 
-This program is used to analyze an audio file and extract various statistics.
+This program is used to analyze audio files and extract various statistics.
 The script provides insights into the quality and characteristics of the
 recording, which can be useful for audio engineers, musicians, and anyone
 interested in understanding the technical aspects of their audio files.
@@ -39,39 +45,48 @@ Options:
   -j, --json        Output results in JSON format (default: human-readable text)
   -m, --metadata    Include metadata fields (genre, artist, album, track,
                     duration, year, sample rate, bit rate) in output
+  -r, --recurse     Recursively search directories for audio files
 
   Examples:
 	# Analyze a single file with human-readable output
 	$THIS_PGM ~/Music/track.flac
 
-	# Analyze multiple files with JSON output
-	$THIS_PGM -j ~/Music/*.flac
+	# Analyze all music files in a directory recursively
+	$THIS_PGM --recurse ~/Music
+
+	# Analyze multiple music files with JSON output
+	$THIS_PGM --json ~/Music/*.flac
 
 	# Analyze a single file with metadata included
-	$THIS_PGM -m ~/Music/track.flac
+	$THIS_PGM --metadata ~/Music/track.flac
 
-	# Analyze multiple files with JSON output and metadata included
-	$THIS_PGM -j -m ~/Music/*.flac
+	# Analyze multiple music files with JSON output and metadata included
+	$THIS_PGM --json --metadata ~/Music/*.flac
 
-	# Analyze files and redirect JSON output to a file for use with the web
+	# Analyze music files and redirect JSON output to a file for use with the web
 	# interface at https://mcochris.com/recording-analyzer/
-	$THIS_PGM -j -m ~/Music/*.flac > analysis_results.json
-
+	$THIS_PGM --json --metadata ~/Music/*.flac > analysis_results.json
+is there a
 	Questions, issues, or suggestions? Please open a support ticket at:
 	https://github.com/mcochris/Recording-analyzer/issues
 "
 
 readonly PROCESSING_LIMIT=100
 readonly VERSION="1.0.0"
+readonly DEFAULT_EXTENSIONS=("aac" "ac3" "aif" "aiff" "amr" "caf" "flac" "m4a" "mp3" "ogg" "opus" "pcm" "wav" "wma")
 
 #
-# Start parsing command-line options.
+# Parse command-line options.
 #
 JSON_OUTPUT="false"
 INCLUDE_METADATA="false"
+RECURSE_FLAG=()
 POSITIONAL=()
 QUIET="false"
 
+#
+# Loop through arguments and handle options
+#
 while [[ $# -gt 0 ]]; do
     case "$1" in
 		help|-h|--help)
@@ -94,6 +109,10 @@ while [[ $# -gt 0 ]]; do
 			QUIET="true"
 			shift
 			;;
+		-r|--recurse)
+			RECURSE_FLAG=("-r")
+			shift
+			;;
         *)
 			POSITIONAL+=("$1")
 			shift
@@ -107,29 +126,122 @@ readonly QUIET
 set -- "${POSITIONAL[@]}"
 
 #
-# Populate files array after parsing positional arguments.
+# Sanitize and load one extension from a raw token
 #
-if [[ $# -gt 1 ]]; then
-    files=("$@")
-elif [[ $# -eq 1 ]]; then
-    # Single arg — treat as a pattern to expand ourselves
-    pattern="$1"
-    expanded="${pattern/#\~/$HOME}"
-    dir=$(dirname "$expanded")
-    glob=$(basename "$expanded")
+function parse_extension() {
+    local ext
+    # Lowercase, strip leading dots and any non-alphanumeric chars except hyphens
+    ext=$(echo "$1" | tr '[:upper:]' '[:lower:]' | sed 's/^\.*//' | tr -cd '[:alnum:]-')
+    echo "$ext"
+}
 
-    readarray -d '' files < <(find "$dir" -maxdepth 1 -name "$glob" -print0 | sort --zero-terminated)
-else
-    echo "Usage: $THIS_PGM <pattern>  (e.g. \"~/Music/*.flac\")" >&2
-    exit 1
-fi
+#
+# Usage: collect_audio_files [OPTIONS] -- arg1 arg2 ...
+# Sets the global array AUDIO_FILES with the resolved file list.
+#
+function collect_audio_files() {
+    AUDIO_FILES=()
+    local recurse=false
 
-if [[ ${#files[@]} -eq 0 ]]; then
-    echo "$THIS_PGM: No files found" >&2
-    exit 1
-fi
+    # Parse -r flag from this function's own args
+    local args=()
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            -r) recurse=true ;;
+            --) shift; args+=("$@"); break ;;
+            *)  args+=("$1") ;;
+        esac
+        shift
+    done
 
-[[ ${#files[@]} -gt $PROCESSING_LIMIT ]] && echo "$THIS_PGM: WARNING: Processing will be limited to $PROCESSING_LIMIT files." >&2
+    # Build a regex pattern like \.(mp3|flac|wav|...)$ for extension matching
+    local ext_pattern
+    ext_pattern=$(printf '%s|' "${EXTENSIONS[@]}")
+    ext_pattern="\\.(${ext_pattern%|})$"
+
+    # Helper: add a single file if it matches an audio extension
+    function _add_if_audio() {
+        local f="$1"
+        if [[ -f "$f" ]] && [[ "${f,,}" =~ $ext_pattern ]]; then
+            AUDIO_FILES+=("$f")
+        fi
+    }
+
+    # Helper: add audio files from a directory (non-recursive)
+    function _add_dir_flat() {
+        local dir="$1"
+        local f
+        while IFS= read -r -d '' f; do
+            _add_if_audio "$f"
+        done < <(find "$dir" -maxdepth 1 -type f -a \( "${find_args[@]}" \) -print0)
+    }
+
+    # Helper: add audio files from a directory (recursive)
+    function _add_dir_recursive() {
+        local dir="$1"
+        local f
+        while IFS= read -r -d '' f; do
+            _add_if_audio "$f"
+        done < <(find "$dir" -type f -a \( "${find_args[@]}" \) -print0)
+    }
+
+    # Process each positional argument
+    local arg
+    for arg in "${args[@]}"; do
+
+        # Expand ~ manually since it won't expand inside a variable
+        arg="${arg/#\~/$HOME}"
+
+        if [[ -d "$arg" ]]; then
+            # Argument is a directory
+            if "$recurse"; then
+                _add_dir_recursive "$arg"
+            else
+                _add_dir_flat "$arg"
+            fi
+
+        elif [[ -f "$arg" ]]; then
+            # Argument is a literal existing file
+            _add_if_audio "$arg"
+
+        else
+            # Treat as a glob pattern — use eval carefully with a controlled expand
+            # We use 'compgen -G' to safely expand the glob without eval
+            local match
+            while IFS= read -r match; do
+                if [[ -d "$match" ]]; then
+                    if "$recurse"; then
+                        _add_dir_recursive "$match"
+                    else
+                        _add_dir_flat "$match"
+                    fi
+                else
+                    _add_if_audio "$match"
+                fi
+            done < <(compgen -G "$arg" 2>/dev/null)
+
+            if [[ ${PIPESTATUS[0]} -ne 0 ]]; then
+                echo "Warning: no matches found for: $arg" >&2
+            fi
+        fi
+
+    done
+
+    # Remove duplicates while preserving order
+    local seen=()
+    local unique=()
+    local f
+    for f in "${AUDIO_FILES[@]}"; do
+        local real
+        real=$(realpath --strip "$f" 2>/dev/null || echo "$f")
+        # shellcheck disable=SC2076
+        if [[ ! " ${seen[*]} " =~ " ${real} " ]]; then
+            seen+=("$real")
+            unique+=("$f")
+        fi
+    done
+    AUDIO_FILES=("${unique[@]}")
+}
 
 #
 # Spinner function to show progress while long-running task is executing
@@ -158,25 +270,67 @@ function spinner() {
 #
 # Function to log errors to a file
 #
-ERROR_LOG="$(mktemp)"
-readonly ERROR_LOG
-
 function error_log() {
 	local message="$1"
 	echo "ERROR: $message" >> "$ERROR_LOG"
 }
 
+#
+# Create temporary files for error logging and results output, and ensure they are cleaned up on exit
+#
+ERROR_LOG="$(mktemp)"
+readonly ERROR_LOG
 RESULTS_FILE="$(mktemp)"
 readonly RESULTS_FILE
+trap 'rm --force "$RESULTS_FILE" 2> /dev/null; rm --force "$ERROR_LOG" 2> /dev/null' EXIT
 
-trap 'rm -f "$RESULTS_FILE" 2> /dev/null; rm -f "$ERROR_LOG" 2> /dev/null' EXIT
+#
+# Build the active extension list
+#
+declare -a EXTENSIONS
+AUDIO_EXTENSIONS="${AUDIO_EXTENSIONS:-}"
+if [[ -n "$AUDIO_EXTENSIONS" ]]; then
+    # Read the env var into an array (word-splitting on spaces/tabs is intentional here)
+    read -r -a raw_exts <<< "$AUDIO_EXTENSIONS"
 
-row=1
+    for raw in "${raw_exts[@]}"; do
+        cleaned=$(parse_extension "$raw")
+        if [[ -n "$cleaned" ]]; then
+            EXTENSIONS+=("$cleaned")
+        else
+            echo "Warning: skipping invalid extension token: '$raw'" >&2
+        fi
+    done
+
+    if [[ ${#EXTENSIONS[@]} -eq 0 ]]; then
+        echo "Warning: AUDIO_EXTENSIONS contained no valid values, using defaults." >&2
+        EXTENSIONS=("${DEFAULT_EXTENSIONS[@]}")
+    fi
+else
+    EXTENSIONS=("${DEFAULT_EXTENSIONS[@]}")
+fi
+
+readonly EXTENSIONS
+
+#
+# Build a find command dynamically from the array
+#
+find_args=()
+for i in "${!EXTENSIONS[@]}"; do
+    [[ $i -gt 0 ]] && find_args+=(-o)
+    find_args+=(-iname "*.${EXTENSIONS[$i]}")
+done
+readonly find_args
+
+collect_audio_files "${RECURSE_FLAG[@]}" -- "${POSITIONAL[@]}"
+[[ ${#AUDIO_FILES[@]} -gt $PROCESSING_LIMIT ]] && echo "$THIS_PGM: WARNING: Processing will be limited to $PROCESSING_LIMIT files." >&2
 
 #
 # Loop through all the files
 #
-for file in "${files[@]}"; do
+for file in "${AUDIO_FILES[@]}"; do
+	echo "Analyzing: $file" >&2
+	continue
 	[[ -e "$file" ]] || { error_log "File \"$file\" does not exist"; continue; }
 	[[ -f "$file" ]] || { error_log "File \"$file\" is not a regular file"; continue; }
 	[[ -r "$file" ]] || { error_log "File \"$file\" is not readable"; continue; }
@@ -366,7 +520,7 @@ for file in "${files[@]}"; do
 	# Run task in background, capture PID, and show spinner while it runs
 	long_running_task &
 	TASK_PID=$!
-	[[ "$QUIET" = "false" ]] && spinner $TASK_PID "Processing file $row of ${#files[@]}: \"$(basename "$file")\""
+	[[ "$QUIET" = "false" ]] && spinner $TASK_PID "Processing file $row of ${#AUDIO_FILES[@]}: \"$(basename "$file")\""
 	wait $TASK_PID
 	row=$((row + 1))
 	if [[ "$row" -gt $PROCESSING_LIMIT ]]; then
@@ -374,6 +528,9 @@ for file in "${files[@]}"; do
 	fi
 done
 
+#
+# Finalize JSON output if needed, and display results or errors
+#
 if [[ "$JSON_OUTPUT" = "false" ]]; then
     echo "" >> "$RESULTS_FILE"
 else
@@ -391,5 +548,5 @@ fi
 
 [[ -s "$ERROR_LOG" ]] && cat "$ERROR_LOG" >&2
 
-rm -f "$RESULTS_FILE" 2> /dev/null
-rm -f "$ERROR_LOG" 2> /dev/null
+rm --force "$RESULTS_FILE" 2> /dev/null
+rm --force "$ERROR_LOG" 2> /dev/null
