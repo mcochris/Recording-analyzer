@@ -6,6 +6,7 @@ set -o nounset
 set -o pipefail
 set -o errtrace
 trap 'echo "ERROR: line $LINENO command \"$BASH_COMMAND\" exited with status $?" >&2' ERR
+trap 'rm -f "$RESULTS_FILE" 2> /dev/null; rm -f "$ERROR_LOG" 2> /dev/null' EXIT
 
 for cmd in ffmpeg awk seq tput; do
 	command -v "$cmd" &> /dev/null || { echo "Error: Required program \"$cmd\" not found" >&2; exit 1; }
