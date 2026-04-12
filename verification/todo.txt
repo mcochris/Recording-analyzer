@@ -60,6 +60,8 @@
 
 - add find command helper pgm to pipe to recording-analyzer (DONE)
 
+- ffmpeg may fail, need to catch that (DONE)
+
 
 ==============================================================================
 
@@ -75,9 +77,6 @@
 
 - merge ez-analyzer into recording-analyzer so there's only one program
 
-- move to dialog instead of gum
-
-- ffmpeg may fail, need to catch that
 
 - add a FAQ:
 	- why does it take so long to process a file?
@@ -90,7 +89,7 @@
 
 - reasons i made this:
 	- eval my recordings for gain levels and noise
-	- find genres/dynamic range to make custom playlists
+	- make custom playlist by genres/dynamic range
 	- create spreadsheet of my songs to quickly scan for stuff i'd like to hear
 	- find files with missing metadata
 	- compare different recordings of same song/album
