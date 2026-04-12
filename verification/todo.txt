@@ -77,6 +77,8 @@
 
 - move to dialog instead of gum
 
+- ffmpeg may fail, need to catch that
+
 - add a FAQ:
 	- why does it take so long to process a file?
 	- how do i get the pgm into a dir in my $PATH?
