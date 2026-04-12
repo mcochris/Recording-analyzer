@@ -62,6 +62,10 @@
 
 - ffmpeg may fail, need to catch that (DONE)
 
+- merge ez-analyzer into recording-analyzer so there's only one program (DONE)
+
+- incorporate user defined file extensions (DONE)
+
 
 ==============================================================================
 
@@ -75,16 +79,13 @@
 
 - can threshold be set to -12% or 110%?
 
-- merge ez-analyzer into recording-analyzer so there's only one program
-
-
 - add a FAQ:
 	- why does it take so long to process a file?
 	- how do i get the pgm into a dir in my $PATH?
 	- if i upload my json, will you store any data?
 	- do you keep any logs?
 	- how do i get to the files on my NAS?
-	- which formats do you handle?
+	- which formats do you handle? can i change them?
 	- why do i have to upload to your website?
 
 - reasons i made this:
