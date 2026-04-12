@@ -8,7 +8,7 @@ set -o errtrace
 trap 'echo "ERROR: line $LINENO command \"$BASH_COMMAND\" exited with status $?" >&2' ERR
 
 for cmd in ffmpeg awk seq tput; do
-	command -v "$cmd" >/dev/null 2>&1 || { echo "Error: Required command not found: $cmd" >&2; exit 1; }
+	command -v "$cmd" &> /dev/null || { echo "Error: Required program \"$cmd\" not found" >&2; exit 1; }
 done
 
 [[ $# -eq 0 ]] && { echo "Usage: $0 <audio_file>"; exit 1; }
@@ -61,33 +61,10 @@ Options:
 
 readonly PROCESSING_LIMIT=100
 readonly VERSION="1.0.0"
-RESULTS_FILE="$(mktemp)"
-readonly RESULTS_FILE
 
 #
-# Spinner function to show progress while long-running task is executing
+# Start parsing command-line options.
 #
-function spinner() {
-    local pid="$1"
-    local message="$2"
-	# shellcheck disable=SC1003
-	local frames=('-' '\' '|' '/')
-    local i=0
-
-    # Hide cursor
-    tput civis 1>&2
-
-    while kill -0 "$pid" 2>/dev/null; do
-        printf "\r%s... %s" "$message" "${frames[$i]}" 1>&2
-        i=$(( (i + 1) % ${#frames[@]} ))
-        sleep 0.1
-    done
-
-    # Clear the spinner line and restore cursor
-    printf "\r\033[K" 1>&2
-    tput cnorm 1>&2
-}
-
 JSON_OUTPUT="false"
 INCLUDE_METADATA="false"
 POSITIONAL=()
@@ -127,7 +104,9 @@ readonly INCLUDE_METADATA
 readonly QUIET
 set -- "${POSITIONAL[@]}"
 
-# If multiple args received, shell already expanded the glob
+#
+# Populate files array after parsing positional arguments.
+#
 if [[ $# -gt 1 ]]; then
     files=("$@")
 elif [[ $# -eq 1 ]]; then
@@ -148,60 +127,97 @@ if [[ ${#files[@]} -eq 0 ]]; then
     exit 1
 fi
 
-if [[ ${#files[@]} -gt $PROCESSING_LIMIT ]]; then
-    echo "WARNING: Processing limited to $PROCESSING_LIMIT files." >&2
-fi
+[[ ${#files[@]} -gt $PROCESSING_LIMIT ]] && echo "WARNING: Processing will be limited to $PROCESSING_LIMIT files." >&2
+
+#
+# Spinner function to show progress while long-running task is executing
+#
+function spinner() {
+    local pid="$1"
+    local message="$2"
+	# shellcheck disable=SC1003
+	local frames=('-' '\' '|' '/')
+    local i=0
+
+    # Hide cursor
+    tput civis 1>&2
+
+    while kill -0 "$pid" 2>/dev/null; do
+        printf "\r%s... %s" "$message" "${frames[$i]}"
+        i=$(( (i + 1) % ${#frames[@]} ))
+        #sleep 0.1
+    done
+
+    # Clear the spinner line and restore cursor
+    printf "\r\033[K"
+    tput cnorm
+}
+
+#
+# Function to log errors to a file
+#
+ERROR_LOG="$(mktemp)"
+readonly ERROR_LOG
+
+function error_log() {
+	local message="$1"
+	echo "ERROR: $message" >> "$ERROR_LOG"
+}
+
+RESULTS_FILE="$(mktemp)"
+readonly RESULTS_FILE
 
 row=1
 
+#
+# Loop through all the files
+#
 for file in "${files[@]}"; do
-	[[ -e "$file" ]] || { echo "Error: File does not exist: $file"; exit 1; }
-	[[ -f "$file" ]] || { echo "Error: File is not a regular file: $file"; exit 1; }
-	[[ -r "$file" ]] || { echo "Error: File not readable: $file"; exit 1; }
+	[[ -e "$file" ]] || { error_log "File \"$file\" does not exist"; continue; }
+	[[ -f "$file" ]] || { error_log "File \"$file\" is not a regular file"; continue; }
+	[[ -r "$file" ]] || { error_log "File \"$file\" is not readable"; continue; }
+	[[ -s "$file" ]] || { error_log "File \"$file\" is empty"; continue; }
 
 	function long_running_task() {
 		# Run ffmpeg with astats filter to get per-channel statistics
-		ASTATS=$(ffmpeg -hide_banner -i "$file" -af "astats" -f null - 2>&1)
+		ASTATS=$(ffmpeg -hide_banner -i "$file" -af "astats" -f null - 2>&1) || { error_log "ffmpeg failed to process \"$file\""; return; }
 		readonly ASTATS
 
-		FFPROBE=$(ffprobe -v quiet -print_format json -show_format -show_streams "$file" 2> /dev/null)
-		readonly FFPROBE
+		# Check if ffmpeg produced expected astats output
+		echo "$ASTATS" | grep --quiet --max-count=1 "Channel:" || { error_log "ffmpeg failed to process \"$file\" correctly"; return; }
 
-		# Check ffmpeg produced expected astats output
-		if ! grep -q "Channel:" <<< "$ASTATS"; then
-			echo "Error: ffmpeg failed to process file."
-			exit 1
-		fi
+		FFPROBE=$(ffprobe -v quiet -print_format json -show_format -show_streams "$file" 2>&1) || { error_log "ffprobe failed to process \"$file\""; return; }
+		readonly FFPROBE
 
 		function get_metadata() {
 			local field="$1"
-			echo "$FFPROBE" | grep "$field" | head -n 1 | awk -F '"' '{print $4}' || true
+			echo "$FFPROBE" | grep "$field" | head --lines 1 | awk -F '"' '{print $4}' || true
 		}
 
 		function get_duration() {
-			echo "$FFPROBE" | grep '"duration"' | tail -n 1 | awk -F '"' '{printf "%.0f", $4}' || true
+			echo "$FFPROBE" | grep '"duration"' | tail --lines 1 | awk -F '"' '{printf "%.0f", $4}' || true
 		}
 
 		# Extract a named stat from within a specific channel block
 		function get_stat() {
 			local channel="$1"
 			local field="$2"
-				echo "$ASTATS" | awk -v ch="Channel: $channel" -v fld="$field" '
-					$0 ~ ch        { in_block=1; next }
-					in_block && /Channel:/ { in_block=0 }
-					in_block && index($0, fld) { print $NF; exit }
-				'
+			echo "$ASTATS" | awk -v ch="Channel: $channel" -v fld="$field" '
+				$0 ~ ch        { in_block=1; next }
+				in_block && /Channel:/ { in_block=0 }
+				in_block && index($0, fld) { print $NF; exit }
+			'
 		}
 
 		# Detect number of channels
 		NUM_CHANNELS=$(echo "$ASTATS" | grep -c "Channel: [0-9]")
 		if [[ "$NUM_CHANNELS" -ne 2 ]]; then
-			echo "Error: not a stereo file."
-			exit 1
+			error_log "\"$file\" is not a stereo file"
+			return
 		fi
 
-		# Run loudnorm and capture JSON output
-		LOUDNORM=$(ffmpeg -hide_banner -i "$file" -af loudnorm=print_format=json -f null - 2>&1 | awk '/^{/,/^}/')
+		# Run loudnorm and capture the JSON output
+		LOUDNORM=$(ffmpeg -hide_banner -i "$file" -af loudnorm=print_format=json -f null - 2>&1 | awk '/^{/,/^}/') || { error_log "ffmpeg failed to run loudnorm on \"$file\""; return; }
 		readonly LOUDNORM
 
 		# Extract a field from the loudnorm JSON
@@ -276,8 +292,8 @@ for file in "${files[@]}"; do
 			echo ""
 		fi
 
-		# Stereo correlation (only meaningful for stereo files)
-		average_phase=$(ffmpeg -hide_banner -i "$file" -af "aphasemeter=video=0,ametadata=print:file=-" -f null - 2>/dev/null \
+		# Stereo correlation
+		average_phase=$(ffmpeg -hide_banner -i "$file" -af "aphasemeter=video=0,ametadata=print:file=-" -f null - 2> /dev/null \
 			| grep 'lavfi.aphasemeter.phase' \
 			| awk -F '=' '{ sum+=$2; n++ } END { if (n>0) printf "%.2f", sum/n; else print "n/a" }')
 
@@ -343,7 +359,7 @@ for file in "${files[@]}"; do
 		fi
 	} >> "$RESULTS_FILE"
 
-	# Run task in background, capture PID, spin until done
+	# Run task in background, capture PID, and show spinner while it runs
 	long_running_task &
 	TASK_PID=$!
 	[[ "$QUIET" = "false" ]] && spinner $TASK_PID "Processing file $row of ${#files[@]}: \"$(basename "$file")\""
@@ -361,10 +377,15 @@ else
     echo "]" >> "$RESULTS_FILE"
 fi
 
-cat "$RESULTS_FILE"
-
-if [[ "$row" -gt $PROCESSING_LIMIT ]]; then
-	echo "WARNING: Processing limited to $PROCESSING_LIMIT files." >&2
+if [[ -s "$RESULTS_FILE" ]]; then
+	cat "$RESULTS_FILE"
+else
+	error_log "No results to display"
 fi
 
+[[ "$row" -gt $PROCESSING_LIMIT ]] && echo "WARNING: Processing was limited to $PROCESSING_LIMIT files." >&2
+
+[[ -s "$ERROR_LOG" ]] && cat "$ERROR_LOG" >&2
+
 rm -f "$RESULTS_FILE" 2> /dev/null
+rm -f "$ERROR_LOG" 2> /dev/null
