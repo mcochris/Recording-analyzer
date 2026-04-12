@@ -123,26 +123,31 @@ echo "
 echo "Searching for audio files in $resolved_dir..."
 # shellcheck disable=SC2086
 # shellcheck disable=SC2001
-found=$(find "$resolved_dir" -type f $find_opts -regextype posix-extended -iregex ".*\.($(echo $extensions | sed 's/ /|/g'))$" 2> /dev/null)
+found=$(find "$resolved_dir" -not -path "*/.*" -type f $find_opts -regextype posix-extended -iregex ".*\.($(echo $extensions | sed 's/ /|/g'))$" 2> /dev/null)
 
 # Check if any audio files were found
 [[ -z "$found" ]] && echo "No audio files found in $resolved_dir. Exiting." && exit 1
 
-# Display found file types and prompt user to select which ones to analyze
-echo "Found $(echo "$found" | wc -l) audio files in $resolved_dir. Chose which file types you want to analyze: "
-extensions_found=$(echo "$found" | sed --regexp-extended 's/.*\.([a-zA-Z0-9]+)$/\1/' | tr '[:upper:]' '[:lower:]' | sort | uniq --count | sort --numeric-sort --reverse | awk '{print $2 " (" $1 " files)"}')
+# If I only find one file type, skip the file type selection and go straight to options selection
+if [[ $(echo "$found" | wc -l) -gt 1 ]]; then
+	# Display found file types and prompt user to select which ones to analyze
+	echo "Found $(echo "$found" | wc -l) audio files in $resolved_dir. Chose which file types you want to analyze: "
+	extensions_found=$(echo "$found" | sed --regexp-extended 's/.*\.([a-zA-Z0-9]+)$/\1/' | tr '[:upper:]' '[:lower:]' | sort | uniq --count | sort --numeric-sort --reverse | awk '{print $2 " (" $1 " files)"}')
 
-# Add "All" option to the list of extensions
-extensions_found="All"$'\n'"$extensions_found"
+	# Add "All" option to the list of extensions
+	extensions_found="All"$'\n'"$extensions_found"
 
-# Prompt user to select which extensions to include in the analysis
-extensions_selected=$(echo "$extensions_found" | gum choose --no-limit)
+	# Prompt user to select which extensions to include in the analysis
+	extensions_selected=$(echo "$extensions_found" | gum choose --no-limit)
 
-# Validate extension selection
-[[ -z "$extensions_selected" ]] && echo "No choice made. Exiting." && exit 1
-echo "
-  You entered: $extensions_selected
-"
+	# Validate extension selection
+	[[ -z "$extensions_selected" ]] && echo "No choice made. Exiting." && exit 1
+	echo "
+	You entered: $extensions_selected
+	"
+else
+	extensions_selected=$(echo "$found" | sed --regexp-extended 's/.*\.([a-zA-Z0-9]+)$/\1/' | tr '[:upper:]' '[:lower:]')
+fi
 
 # Generate list of files to analyze based on selected extensions
 if echo "$extensions_selected" | grep --quiet --word-regexp "All"; then
