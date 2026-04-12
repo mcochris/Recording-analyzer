@@ -6,18 +6,19 @@ set -o nounset
 set -o pipefail
 set -o errtrace
 trap 'echo "ERROR: line $LINENO command \"$BASH_COMMAND\" exited with status $?" >&2' ERR
-trap 'rm -f "$RESULTS_FILE" 2> /dev/null; rm -f "$ERROR_LOG" 2> /dev/null' EXIT
 
 for cmd in ffmpeg awk seq tput; do
 	command -v "$cmd" &> /dev/null || { echo "Error: Required program \"$cmd\" not found" >&2; exit 1; }
 done
 
-[[ $# -eq 0 ]] && { echo "Usage: $0 <audio_file>"; exit 1; }
+THIS_PGM=$(basename "$0")
+readonly THIS_PGM
+[[ $# -eq 0 ]] && { echo "Usage: $THIS_PGM <audio_file>"; exit 1; }
 
 readonly HELP="
 Audio Recording Analyzer
 
-Usage: recording-analyzer.sh <audio_file>
+Usage: $THIS_PGM <audio_file>
 
 This program is used to analyze an audio file and extract various statistics.
 The script provides insights into the quality and characteristics of the
@@ -41,20 +42,20 @@ Options:
 
   Examples:
 	# Analyze a single file with human-readable output
-	recording-analyzer.sh ~/Music/track.flac
+	$THIS_PGM ~/Music/track.flac
 
 	# Analyze multiple files with JSON output
-	recording-analyzer.sh -j ~/Music/*.flac
+	$THIS_PGM -j ~/Music/*.flac
 
 	# Analyze a single file with metadata included
-	recording-analyzer.sh -m ~/Music/track.flac
+	$THIS_PGM -m ~/Music/track.flac
 
 	# Analyze multiple files with JSON output and metadata included
-	recording-analyzer.sh -j -m ~/Music/*.flac
+	$THIS_PGM -j -m ~/Music/*.flac
 
 	# Analyze files and redirect JSON output to a file for use with the web
 	# interface at https://mcochris.com/recording-analyzer/
-	recording-analyzer.sh -j -m ~/Music/*.flac > analysis_results.json
+	$THIS_PGM -j -m ~/Music/*.flac > analysis_results.json
 
 	Questions, issues, or suggestions? Please open a support ticket at:
 	https://github.com/mcochris/Recording-analyzer/issues
@@ -78,7 +79,7 @@ while [[ $# -gt 0 ]]; do
 			exit 0
 			;;
 		-v|--version)
-			echo "recording-analyzer.sh version $VERSION"
+			echo "$THIS_PGM version $VERSION"
 			exit 0
 			;;
         -j|--json)
@@ -117,18 +118,18 @@ elif [[ $# -eq 1 ]]; then
     dir=$(dirname "$expanded")
     glob=$(basename "$expanded")
 
-    mapfile -d '' files < <(find "$dir" -maxdepth 1 -name "$glob" -print0 | sort -z)
+    readarray -d '' files < <(find "$dir" -maxdepth 1 -name "$glob" -print0 | sort --zero-terminated)
 else
-    echo "Usage: $0 <pattern>  (e.g. \"~/Music/*.flac\")" >&2
+    echo "Usage: $THIS_PGM <pattern>  (e.g. \"~/Music/*.flac\")" >&2
     exit 1
 fi
 
 if [[ ${#files[@]} -eq 0 ]]; then
-    echo "No files found" >&2
+    echo "$THIS_PGM: No files found" >&2
     exit 1
 fi
 
-[[ ${#files[@]} -gt $PROCESSING_LIMIT ]] && echo "WARNING: Processing will be limited to $PROCESSING_LIMIT files." >&2
+[[ ${#files[@]} -gt $PROCESSING_LIMIT ]] && echo "$THIS_PGM: WARNING: Processing will be limited to $PROCESSING_LIMIT files." >&2
 
 #
 # Spinner function to show progress while long-running task is executing
@@ -167,6 +168,8 @@ function error_log() {
 
 RESULTS_FILE="$(mktemp)"
 readonly RESULTS_FILE
+
+trap 'rm -f "$RESULTS_FILE" 2> /dev/null; rm -f "$ERROR_LOG" 2> /dev/null' EXIT
 
 row=1
 
