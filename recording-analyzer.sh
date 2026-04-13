@@ -323,12 +323,12 @@ readonly find_args
 collect_audio_files "${RECURSE_FLAG[@]}" -- "${POSITIONAL[@]}"
 #[[ ${#AUDIO_FILES[@]} -gt $PROCESSING_LIMIT ]] && echo "$THIS_PGM: WARNING: Processing will be limited to $PROCESSING_LIMIT files." >&2
 
+row=1
+
 #
 # Loop through all the files
 #
 for file in "${AUDIO_FILES[@]}"; do
-	echo "Analyzing: $file" >&2
-	continue
 	[[ -e "$file" ]] || { error_log "File \"$file\" does not exist"; continue; }
 	[[ -f "$file" ]] || { error_log "File \"$file\" is not a regular file"; continue; }
 	[[ -r "$file" ]] || { error_log "File \"$file\" is not readable"; continue; }
@@ -385,7 +385,7 @@ for file in "${AUDIO_FILES[@]}"; do
 		# Print header and per-channel stats to results file
 		if [[ "$JSON_OUTPUT" = "false" ]]; then
 			echo ""
-			TEXT="Audio Analysis: \"$file\""
+			TEXT="Audio Analysis: \"$(basename "$file")\""
 			echo "$TEXT"
 			printf '=%.0s' $(seq 1 ${#TEXT})
 			echo ""
