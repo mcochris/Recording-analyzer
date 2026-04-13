@@ -79,6 +79,20 @@
 
 - can threshold be set to -12% or 110%?
 
+- add user-defined metadata fields
+
+- test on windows
+
+- finish verify readme.md
+
+- get website working
+
+- add help page to website
+
+- find some music with full metadata and add website screenshots to readme.md
+
+- update privacy.md with details about website
+
 - add a FAQ:
 	- why does it take so long to process a file?
 	- how do i get the pgm into a dir in my $PATH?
