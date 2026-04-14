@@ -14,7 +14,7 @@ It does not collect, transmit, store, or share any information about you or your
 
 ## What the app does NOT do
 
-- It does not collect personal data of any kind
+- It does not collect personal data
 - It does not transmit data over the internet ("phone home")
 - It does not create logs, telemetry, or analytics
 - It does not display advertising
@@ -40,4 +40,4 @@ verify these claims for yourself.
 
 ## Contact
 
-If you have questions about this policy, feel free to open a GitHub issue.
+If you have questions about this policy, feel free to open a GitHub issue at <https://github.com/mcochris/Recording-analyzer/issues>
