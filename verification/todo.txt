@@ -102,7 +102,7 @@
 
 - in metadata, artist and album are always the same
 
-- on windows, json "path" field is not realpath, e.g. it's ../Music and not /x/y/a/Music
+- on windows, json "path" field is not realpath, e.g. it's ../Music and not /x/y/a/Music. Works fine if you spec "/mnt/nas/..."
 
 - --foobar option generates: "ERROR: line 190 command "compgen -G "$arg" 2> /dev/null" exited with status 1"
 
@@ -111,7 +111,7 @@
 	- how do i get the pgm into a dir in my $PATH?
 	- if i upload my json, will you store any data?
 	- do you keep any logs?
-	- how do i get to the files on my NAS?
+	- how do i get to the files on my NAS? (cifs)
 	- which formats do you handle? can i change them?
 	- why do i have to upload to your website?
 
