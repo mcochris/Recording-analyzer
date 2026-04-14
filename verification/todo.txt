@@ -85,13 +85,19 @@
 
 - finish verify readme.md
 
-- get website working
+- get website working (DONE)
 
 - add help page to website
 
 - find some music with full metadata and add website screenshots to readme.md
 
 - update privacy.md with details about website
+
+- set upload limits on website in JS and nginx
+
+- website not loading all data
+
+- website not loading any data after first data load. or after page refresh
 
 - add a FAQ:
 	- why does it take so long to process a file?
