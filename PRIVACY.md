@@ -23,7 +23,13 @@ It does not collect, transmit, store, or share any information about you or your
 
 ## Third-party services
 
-None. The app has no network activity and uses no third-party SDKs or services.
+None. The app has no network activity and uses no third-party services.
+
+## recording-analyzer website
+
+There is an optional website associated with recording-analyzer at <https://recording-analyzer.mcochris.com/>
+
+See the privacy policy for that website at <https://github.com/mcochris/recording-analyzer-webpage/blob/main/PRIVACY.md>
 
 ## Open source
 
