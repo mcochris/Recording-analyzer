@@ -5,7 +5,7 @@
 ![Dependency](https://img.shields.io/badge/Dependency-ffmpeg-green)
 ![License](https://img.shields.io/badge/License-MIT-yellow)
 
-A lightweight Bash utility for analyzing objective characteristics of audio files
+A Bash utility for analyzing objective characteristics of audio files
 (.wav, .flac, .mp3, etc.) using **ffmpeg**.
 
 Provides quick, repeatable, file-level measurements for common audio metrics.
