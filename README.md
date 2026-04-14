@@ -82,7 +82,7 @@ Analyze every music file in the Music directory and get each file's metadata:
 recording-analyzer.sh --metadata "/home/user/Music"
 ```
 
-Analyze every music file in the Music directory and capture the JSON results in a file. You can upload the JSON file to <https://mcochris.com/ra/> to see your data in spreadsheet format, download the spreadsheet of your data, and create custom playlists:
+Analyze every music file in the Music directory and capture the JSON results in a file. You can upload the JSON file to <https://recording-analyzer.mcochris.com/> to see your data in spreadsheet format, download the spreadsheet of your data, and create custom playlists:
 
 ```bash
 recording-analyzer.sh --json "/home/user/Music" > mydata.json
