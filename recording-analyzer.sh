@@ -24,7 +24,7 @@ readonly HELP="
 
 Usage: $THIS_PGM <audio_file>
        - or -
-	   $THIS_PGM <directory>
+       $THIS_PGM <directory>
 
 This program is used to analyze audio files and extract various statistics.
 The script provides insights into the quality and characteristics of the
@@ -255,14 +255,14 @@ function spinner() {
     tput civis 1>&2
 
     while kill -0 "$pid" 2>/dev/null; do
-        printf "\r%s... %s" "$message" "${frames[$i]}"
+        printf "\r%s... %s" "$message" "${frames[$i]}" 1>&2
         i=$(( (i + 1) % ${#frames[@]} ))
         #sleep 0.1
     done
 
     # Clear the spinner line and restore cursor
-    printf "\r\033[K"
-    tput cnorm
+    printf "\r\033[K" 1>&2
+    tput cnorm 1>&2
 }
 
 #

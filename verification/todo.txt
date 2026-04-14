@@ -66,6 +66,9 @@
 
 - incorporate user defined file extensions (DONE)
 
+- get website working (Done)
+
+
 
 ==============================================================================
 
@@ -85,13 +88,23 @@
 
 - finish verify readme.md
 
-- get website working (DONE)
+- add --dry-run option? (DONE)
 
 - add help page to website
 
 - find some music with full metadata and add website screenshots to readme.md
 
 - update privacy.md with details about website
+
+- had a few cases were one of the string fields in a json file was not in double quotes
+
+- had a few cases were one of the number fields in a json file had a leading zero (e.g. 01) or were strings
+
+- in metadata, artist and album are always the same
+
+- on windows, json "path" field is not realpath, e.g. it's ../Music and not /x/y/a/Music. Works fine if you spec "/mnt/nas/..."
+
+- --foobar option generates: "ERROR: line 190 command "compgen -G "$arg" 2> /dev/null" exited with status 1"
 
 - set upload limits on website in JS and nginx
 
@@ -104,7 +117,7 @@
 	- how do i get the pgm into a dir in my $PATH?
 	- if i upload my json, will you store any data?
 	- do you keep any logs?
-	- how do i get to the files on my NAS?
+	- how do i get to the files on my NAS? (cifs)
 	- which formats do you handle? can i change them?
 	- why do i have to upload to your website?
 
