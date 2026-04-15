@@ -68,6 +68,17 @@
 
 - get website working (Done)
 
+- add clear button to website to got rid of local storage (DONE)
+
+- add help page to website (DONE)
+
+- find some music with full metadata and add website screenshots to readme.md (DONE)
+
+- update privacy.md with details about website (DONE)
+
+- --foobar option generates: "ERROR: line 190 command "compgen -G "$arg" 2> /dev/null" exited with status 1" (DONE)
+
+- add some sort of status/spinner when gathering list of files (DONE)
 
 
 ==============================================================================
@@ -88,13 +99,7 @@
 
 - finish verify readme.md
 
-- add --dry-run option? (DONE)
-
-- add help page to website
-
-- find some music with full metadata and add website screenshots to readme.md
-
-- update privacy.md with details about website
+- add --dry-run option?
 
 - had a few cases were one of the string fields in a json file was not in double quotes
 
@@ -104,22 +109,26 @@
 
 - on windows, json "path" field is not realpath, e.g. it's ../Music and not /x/y/a/Music. Works fine if you spec "/mnt/nas/..."
 
-- --foobar option generates: "ERROR: line 190 command "compgen -G "$arg" 2> /dev/null" exited with status 1"
+- set upload limits on website in JS and nginx (https://tabulator.info/docs/6.4/data#import-validate)
 
-- set upload limits on website in JS and nginx
+- JSON errors halt processing data on the website
 
-- website not loading all data
+- can you sort by more than one column at a time. if so, add to help and readme
 
-- website not loading any data after first data load. or after page refresh
+- what happen if load random json into the website?
+
+- what happens if you select two files at once in the website file picker?
+
+- on playlists, trim extension off file name
 
 - add a FAQ:
 	- why does it take so long to process a file?
 	- how do i get the pgm into a dir in my $PATH?
-	- if i upload my json, will you store any data?
-	- do you keep any logs?
+	- if i upload my json, will you store any data? (DONE)
+	- do you keep any logs? (DONE)
 	- how do i get to the files on my NAS? (cifs)
 	- which formats do you handle? can i change them?
-	- why do i have to upload to your website?
+	- why do i have to upload to your website? (DONE)
 
 - reasons i made this:
 	- eval my recordings for gain levels and noise
