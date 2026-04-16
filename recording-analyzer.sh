@@ -169,7 +169,7 @@ function collect_audio_files() {
         local f="$1"
         if [[ -f "$f" ]] && [[ "${f,,}" =~ $ext_pattern ]]; then
             AUDIO_FILES+=("$f")
-			msg="Scanning... found ${#AUDIO_FILES[@]} file(s): \"$(basename "$f")\""
+			msg="Scanning... found ${#AUDIO_FILES[@]} file(s)"
 			[[ "$QUIET" = "false" ]] && echo -e -n "\r${msg:0:$((COLS))}\033[K" >&2
             #[[ "$QUIET" = "false" ]] && printf "\rScanning... found %d file(s): \"%s\"\033[K" "${#AUDIO_FILES[@]}" "$(basename "$f")" >&2
         fi
@@ -461,7 +461,7 @@ function long_running_task() {
 			echo "  \"album\": \"${album:-n/a}\","
 			echo "  \"track\": ${track:-\"n/a\"},"
 			echo "  \"duration\": ${duration:-\"n/a\"},"
-			echo "  \"date\": ${date:-\"n/a\"},"
+			echo "  \"date\": \"${date:-\"n/a\"}\","
 			echo "  \"sample_rate\": ${sample_rate:-\"n/a\"},"
 			echo "  \"bit_rate\": ${bit_rate:-\"n/a\"},"
 			echo "  \"bits_per_sample\": ${bits_per_raw_sample:-\"n/a\"},"
