@@ -74,6 +74,8 @@ Options:
 #readonly PROCESSING_LIMIT=100
 readonly VERSION="1.0.0"
 readonly DEFAULT_EXTENSIONS=("aac" "ac3" "aif" "aiff" "amr" "caf" "flac" "m4a" "mp3" "ogg" "opus" "pcm" "wav" "wma")
+COLS=$(tput cols)
+readonly COLS
 
 #
 # Parse command-line options.
@@ -165,11 +167,10 @@ function collect_audio_files() {
     # Helper: add a single file if it matches an audio extension
 	function _add_if_audio() {
         local f="$1"
-		cols=$(tput cols)
         if [[ -f "$f" ]] && [[ "${f,,}" =~ $ext_pattern ]]; then
             AUDIO_FILES+=("$f")
 			msg="Scanning... found ${#AUDIO_FILES[@]} file(s): \"$(basename "$f")\""
-			[[ "$QUIET" = "false" ]] && echo -e -n "\r${msg:0:$((cols))}\033[K" >&2
+			[[ "$QUIET" = "false" ]] && echo -e -n "\r${msg:0:$((COLS))}\033[K" >&2
             #[[ "$QUIET" = "false" ]] && printf "\rScanning... found %d file(s): \"%s\"\033[K" "${#AUDIO_FILES[@]}" "$(basename "$f")" >&2
         fi
     }
@@ -257,13 +258,12 @@ function spinner() {
 	# shellcheck disable=SC1003
 	local frames=('-' '\' '|' '/')
     local i=0
-	cols=$(tput cols)
 
     # Hide cursor
     tput civis 1>&2
 
     while kill -0 "$pid" 2>/dev/null; do
-        printf "\r%s... %s" "${message:0:$((cols-5))}" "${frames[$i]}" 1>&2
+        printf "\r%s... %s" "${message:0:$((COLS-5))}" "${frames[$i]}" 1>&2
         i=$(( (i + 1) % ${#frames[@]} ))
         #sleep 0.1
     done
@@ -318,6 +318,23 @@ function get_loudnorm() {
 }
 
 #
+# Extract metadata tags from ffprobe output
+#
+function get_metadata_tags() {
+	local field="$1"
+	echo "$FFPROBE" | jq -r --arg field "$field" '.format.tags[$field] // empty'
+}
+
+function integerize() {
+	local value="$1"
+	if [[ "$value" =~ ^[0-9]+$ ]]; then
+		echo $((10#$value))  # 10# forces base-10, stripping leading zeros
+	else
+		echo ""
+	fi
+}
+
+#
 #	Function to perform the long-running analysis task for a single file
 #
 function long_running_task() {
@@ -352,12 +369,12 @@ function long_running_task() {
 	fi
 
 	if [[ "$INCLUDE_METADATA" = "true" ]]; then
-		genre=$(get_metadata "genre")
-		artist=$(get_metadata "artist")
-		album=$(get_metadata "album")
-		track=$(get_metadata "track")
+		genre=$(get_metadata_tags "GENRE")
+		artist=$(get_metadata_tags "ARTIST")
+		album=$(get_metadata_tags "ALBUM")
+		track=$(integerize "$(get_metadata_tags "track")")
 		duration=$(get_duration)
-		year=$(get_metadata "date")
+		year=$(get_metadata_tags "DATE")
 		sample_rate=$(get_metadata "sample_rate")
 		bit_rate=$(get_metadata "bit_rate")
 		bits_per_raw_sample=$(get_metadata "bits_per_raw_sample")
