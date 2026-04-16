@@ -165,9 +165,12 @@ function collect_audio_files() {
     # Helper: add a single file if it matches an audio extension
 function _add_if_audio() {
         local f="$1"
+		cols=$(tput cols)
         if [[ -f "$f" ]] && [[ "${f,,}" =~ $ext_pattern ]]; then
             AUDIO_FILES+=("$f")
-            [[ "$QUIET" = "false" ]] && printf "\rScanning... found %d file(s): \"%s\"\033[K" "${#AUDIO_FILES[@]}" "$(basename "$f")" >&2
+			msg="Scanning... found ${#AUDIO_FILES[@]} file(s): \"$(basename "$f")\""
+			[[ "$QUIET" = "false" ]] && echo -e -n "\r${msg:0:$((cols))}\033[K" >&2
+            #[[ "$QUIET" = "false" ]] && printf "\rScanning... found %d file(s): \"%s\"\033[K" "${#AUDIO_FILES[@]}" "$(basename "$f")" >&2
         fi
     }
 
@@ -254,12 +257,13 @@ function spinner() {
 	# shellcheck disable=SC1003
 	local frames=('-' '\' '|' '/')
     local i=0
+	cols=$(tput cols)
 
     # Hide cursor
     tput civis 1>&2
 
     while kill -0 "$pid" 2>/dev/null; do
-        printf "\r%s... %s" "$message" "${frames[$i]}" 1>&2
+        printf "\r%s... %s" "${message:0:$((cols-5))}" "${frames[$i]}" 1>&2
         i=$(( (i + 1) % ${#frames[@]} ))
         #sleep 0.1
     done
@@ -532,7 +536,6 @@ for file in "${AUDIO_FILES[@]}"; do
 	[[ -f "$file" ]] || { error_log "File \"$file\" is not a regular file"; continue; }
 	[[ -r "$file" ]] || { error_log "File \"$file\" is not readable"; continue; }
 	[[ -s "$file" ]] || { error_log "File \"$file\" is empty"; continue; }
-
 
 	# Run task in background, capture PID, and show spinner while it runs
 	long_running_task &
