@@ -129,6 +129,7 @@
 	- how do i get to the files on my NAS? (cifs)
 	- which formats do you handle? can i change them?
 	- why do i have to upload to your website? (DONE)
+	- why does the JSON file contains errors?
 
 - reasons i made this:
 	- eval my recordings for gain levels and noise
