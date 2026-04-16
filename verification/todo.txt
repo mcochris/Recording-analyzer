@@ -80,24 +80,17 @@
 
 - add some sort of status/spinner when gathering list of files (DONE)
 
+- finish verify readme.md (DONE)
+
+
 
 ==============================================================================
 
 - run main program on all my audio files as test
 
-- run verification on all my audio files as a test
-
-- does setting a threshold to 0% break anything?
-
-- does setting a threshold to 100% break anything?
-
-- can threshold be set to -12% or 110%?
-
 - add user-defined metadata fields
 
 - test on windows
-
-- finish verify readme.md
 
 - add --dry-run option?
 
