@@ -44,7 +44,7 @@ Options:
   -q, --quiet       Suppress progress spinner and other non-essential output
   -j, --json        Output results in JSON format (default: human-readable text)
   -m, --metadata    Include metadata fields (genre, artist, album, track,
-                    duration, year, sample rate, bit rate) in output
+                    duration, date, sample rate, bit rate) in output
   -r, --recurse     Recursively search directories for audio files
 
   Examples:
@@ -374,7 +374,7 @@ function long_running_task() {
 		album=$(get_metadata_tags "ALBUM")
 		track=$(integerize "$(get_metadata_tags "track")")
 		duration=$(get_duration)
-		year=$(get_metadata_tags "DATE")
+		date=$(get_metadata_tags "DATE")
 		sample_rate=$(get_metadata "sample_rate")
 		bit_rate=$(get_metadata "bit_rate")
 		bits_per_raw_sample=$(get_metadata "bits_per_raw_sample")
@@ -387,7 +387,7 @@ function long_running_task() {
 			echo "  Album:           ${album:-n/a}"
 			echo "  Track:           ${track:-n/a}"
 			echo "  Duration:        ${duration:-n/a} seconds"
-			echo "  Year:            ${year:-n/a}"
+			echo "  Date:            ${date:-n/a}"
 			echo "  Sample Rate:     ${sample_rate:-n/a} Hz"
 			echo "  Avg. Bit Rate:   ${bit_rate:-n/a} bps"
 			echo "  Bits Per Sample: ${bits_per_raw_sample:-n/a}"
@@ -461,7 +461,7 @@ function long_running_task() {
 			echo "  \"album\": \"${album:-n/a}\","
 			echo "  \"track\": ${track:-\"n/a\"},"
 			echo "  \"duration\": ${duration:-\"n/a\"},"
-			echo "  \"year\": ${year:-\"n/a\"},"
+			echo "  \"date\": ${date:-\"n/a\"},"
 			echo "  \"sample_rate\": ${sample_rate:-\"n/a\"},"
 			echo "  \"bit_rate\": ${bit_rate:-\"n/a\"},"
 			echo "  \"bits_per_sample\": ${bits_per_raw_sample:-\"n/a\"},"
