@@ -213,4 +213,4 @@ You can verify the recording-analyzers' output against programs other than ffmpe
 
 ## 💬 Feedback
 
-Comments, questions, and suggestions are welcome. You can open a issue here: <https://github.com/mcochris/Recording-analyzer/issues>
+Comments, questions, and suggestions are welcome. You can open an issue here: <https://github.com/mcochris/Recording-analyzer/issues>
