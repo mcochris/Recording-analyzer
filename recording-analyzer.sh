@@ -163,7 +163,7 @@ function collect_audio_files() {
     ext_pattern="\\.(${ext_pattern%|})$"
 
     # Helper: add a single file if it matches an audio extension
-function _add_if_audio() {
+	function _add_if_audio() {
         local f="$1"
 		cols=$(tput cols)
         if [[ -f "$f" ]] && [[ "${f,,}" =~ $ext_pattern ]]; then
@@ -399,12 +399,12 @@ function long_running_task() {
 		echo "Left Channel:"
 		echo "  Peak Level:     ${left_rounded_peak:-n/a} dBFS"
 		echo "  Noise Floor:    ${left_rounded_noise:-n/a} dBFS"
-		echo "  Crest Factor:   ${left_rounded_crest:-n/a}°"
+		echo "  Crest Factor:   ${left_rounded_crest:-n/a} dB"
 		echo ""
 		echo "Right Channel:"
 		echo "  Peak Level:     ${right_rounded_peak:-n/a} dBFS"
 		echo "  Noise Floor:    ${right_rounded_noise:-n/a} dBFS"
-		echo "  Crest Factor:   ${right_rounded_crest:-n/a}°"
+		echo "  Crest Factor:   ${right_rounded_crest:-n/a} dB"
 		echo ""
 	fi
 
