@@ -13,6 +13,7 @@
 		"FFPROBE",
 		"flac",
 		"HVAC",
+		"integerize",
 		"intersample",
 		"iregex",
 		"lavfi",
