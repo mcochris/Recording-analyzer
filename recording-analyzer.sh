@@ -461,7 +461,7 @@ function long_running_task() {
 			echo "  \"album\": \"${album:-n/a}\","
 			echo "  \"track\": ${track:-\"n/a\"},"
 			echo "  \"duration\": ${duration:-\"n/a\"},"
-			echo "  \"date\": \"${date:-\"n/a\"}\","
+			echo "  \"date\": \"${date:-n/a}\","
 			echo "  \"sample_rate\": ${sample_rate:-\"n/a\"},"
 			echo "  \"bit_rate\": ${bit_rate:-\"n/a\"},"
 			echo "  \"bits_per_sample\": ${bits_per_raw_sample:-\"n/a\"},"
