@@ -373,11 +373,11 @@ function long_running_task() {
 		artist=$(get_metadata_tags "ARTIST")
 		album=$(get_metadata_tags "ALBUM")
 		track=$(integerize "$(get_metadata_tags "track")")
-		duration=$(get_duration)
+		duration=$(integerize "$(get_duration)")
 		date=$(get_metadata_tags "DATE")
-		sample_rate=$(get_metadata "sample_rate")
-		bit_rate=$(get_metadata "bit_rate")
-		bits_per_raw_sample=$(get_metadata "bits_per_raw_sample")
+		sample_rate=$(integerize "$(get_metadata "sample_rate")")
+		bit_rate=$(integerize "$(get_metadata "bit_rate")")
+		bits_per_raw_sample=$(integerize "$(get_metadata "bits_per_raw_sample")")
 
 		if [[ "$JSON_OUTPUT" = "false" ]]; then
 			echo ""
