@@ -38,10 +38,10 @@ This tool fills that gap by providing:
 
 ## ✅ Requirements
 
-The BASH shell and ffmpeg programs must be available on your computer. On Ubuntu linux, you can install ffmpeg via:
+The BASH shell, ffmpeg, and jq programs must be available on your computer. On Ubuntu linux, you can install them via:
 
 ```shell
-sudo apt install ffmpeg
+sudo apt install ffmpeg jq
 ```
 
 ## 📦 Installation
