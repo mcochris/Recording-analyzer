@@ -5,6 +5,7 @@
 		"argparse",
 		"ASTATS",
 		"audiofile",
+		"cifs",
 		"civis",
 		"cnorm",
 		"dbfs",
@@ -30,6 +31,8 @@
 		"scriptable",
 		"soundfile",
 		"spacebar",
-		"subdirs"
+		"subdirs",
+		"yourpassword",
+		"youruser"
 	]
 }
