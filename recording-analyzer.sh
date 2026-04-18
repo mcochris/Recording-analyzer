@@ -225,10 +225,10 @@ function collect_audio_files() {
                 else
                     _add_if_audio "$match"
                 fi
-            done < <(compgen -G "$arg" 2>/dev/null)
+            done < <(compgen -G "$arg" 2>/dev/null || true)
 
             if [[ ${PIPESTATUS[0]} -ne 0 ]]; then
-                echo "Warning: no matches found for: $arg" >&2
+                error_log "Warning: no matches found for: $arg"
             fi
         fi
     done
@@ -539,6 +539,7 @@ for i in "${!EXTENSIONS[@]}"; do
 done
 readonly find_args
 
+echo "Collecting audio files..." >&2
 collect_audio_files "${RECURSE_FLAG[@]}" -- "${POSITIONAL[@]}"
 [[ "$QUIET" = "false" ]] && printf "\r\033[K" >&2
 #[[ ${#AUDIO_FILES[@]} -gt $PROCESSING_LIMIT ]] && echo "$THIS_PGM: WARNING: Processing will be limited to $PROCESSING_LIMIT files." >&2
@@ -589,7 +590,7 @@ fi
 #
 #[[ "$row" -gt $PROCESSING_LIMIT ]] && echo "WARNING: Processing was limited to $PROCESSING_LIMIT files." >&2
 
-[[ -s "$ERROR_LOG" ]] && cat "$ERROR_LOG" >&2
+[[ -s "$ERROR_LOG" ]] && cat "$ERROR_LOG" | sort | uniq >&2
 
 #
 # Cleanup temporary files (also handled by trap on EXIT)
