@@ -22,6 +22,8 @@
 		"loudgain",
 		"loudnorm",
 		"LUFS",
+		"mygid",
+		"myuid",
 		"newaxis",
 		"numpy",
 		"peakiness",
@@ -29,10 +31,12 @@
 		"regextype",
 		"samplerate",
 		"scriptable",
+		"sharename",
 		"soundfile",
 		"spacebar",
 		"subdirs",
 		"yourpassword",
-		"youruser"
+		"youruser",
+		"yourusername"
 	]
 }
