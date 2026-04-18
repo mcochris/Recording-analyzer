@@ -432,7 +432,7 @@ function long_running_task() {
 
 	if [[ "$JSON_OUTPUT" = "false" ]]; then
 		echo "Stereo Correlation:"
-		echo "  Average Phase:  $average_phase degrees"
+		echo "  Average Phase:  $average_phase"
 	fi
 
 	integrated_loudness=$(get_loudnorm "input_i")
@@ -484,7 +484,7 @@ function long_running_task() {
 		fi
 
 		echo "  \"right_crest_factor\": ${right_rounded_crest:-\"n/a\"},"
-		echo "  \"average_phase_degrees\": ${average_phase:-\"n/a\"},"
+		echo "  \"average_phase\": ${average_phase:-\"n/a\"},"
 		echo "  \"integrated_loudness_lufs\": ${rounded_integrated_loudness:-\"n/a\"},"
 		echo "  \"true_peak_db\": ${rounded_true_peak:-\"n/a\"},"
 		echo "  \"loudness_range_lu\": ${rounded_loudness_range:-\"n/a\"}"
