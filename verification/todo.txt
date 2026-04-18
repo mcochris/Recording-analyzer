@@ -82,6 +82,27 @@
 
 - finish verify readme.md (DONE)
 
+- in metadata, artist and album are always the same (DONE)
+
+- had a few cases were one of the string fields in a json file was not in double quotes (DONE)
+
+- had a few cases were one of the number fields in a json file had a leading zero (e.g. 01) or were strings (DONE)
+
+- on windows, json "path" field is not realpath, e.g. it's ../Music and not /x/y/a/Music. Works fine if you spec "/mnt/nas/..." (So what?)
+
+- on playlists, trim extension off file name (DONE)
+
+- set upload limits on website in JS and nginx (https://tabulator.info/docs/6.4/data#import-validate) (Could not get them to do anything)
+
+- what happens if you select two files at once in the website file picker? (Can't, file picker only allows one)
+
+- can you sort by more than one column at a time. if so, add to help and readme (DONE)
+
+- what happen if load random json into the website? (tested)
+
+- JSON errors halt processing data on the website (FIXED)
+
+- entering invalid dir/filename in recording-analyzer gets a "error line 198" messages (FIXED)
 
 
 ==============================================================================
@@ -92,34 +113,13 @@
 
 - test on windows
 
-- add --dry-run option?
-
-- had a few cases were one of the string fields in a json file was not in double quotes
-
-- had a few cases were one of the number fields in a json file had a leading zero (e.g. 01) or were strings
-
-- in metadata, artist and album are always the same
-
-- on windows, json "path" field is not realpath, e.g. it's ../Music and not /x/y/a/Music. Works fine if you spec "/mnt/nas/..."
-
-- set upload limits on website in JS and nginx (https://tabulator.info/docs/6.4/data#import-validate)
-
-- JSON errors halt processing data on the website
-
-- can you sort by more than one column at a time. if so, add to help and readme
-
-- what happen if load random json into the website?
-
-- what happens if you select two files at once in the website file picker?
-
-- on playlists, trim extension off file name
+- long pause after scanning for files
 
 - add a FAQ:
-	- why does it take so long to process a file?
 	- how do i get the pgm into a dir in my $PATH?
 	- if i upload my json, will you store any data? (DONE)
 	- do you keep any logs? (DONE)
-	- how do i get to the files on my NAS? (cifs)
+	- how do i get to the files on my NAS? (DONE)
 	- which formats do you handle? can i change them?
 	- why do i have to upload to your website? (DONE)
 	- why does the JSON file contains errors?
