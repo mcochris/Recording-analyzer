@@ -106,10 +106,9 @@
 
 - long pause after scanning for files (FIXED)
 
+- run main program on all my audio files as test (DONE)
 
 ==============================================================================
-
-- run main program on all my audio files as test
 
 - add user-defined metadata fields
 
