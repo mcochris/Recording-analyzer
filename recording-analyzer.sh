@@ -1,11 +1,21 @@
 #!/usr/bin/env bash
 
+readonly VERSION="1.0.0"
+
+function cleanup() {
+	[[ -n "${RESULTS_FILE:-}" ]] && rm --force "$RESULTS_FILE" 2> /dev/null
+	[[ -n "${ERROR_LOG:-}" ]] && rm --force "$ERROR_LOG" 2> /dev/null
+	tput cnorm 1>&2
+}
+
 #set -o xtrace
 set -o errexit
 set -o nounset
 set -o pipefail
 set -o errtrace
-trap 'echo "ERROR: line $LINENO command \"$BASH_COMMAND\" exited with status $?" >&2' ERR
+trap 'echo "Aborted."; tput cnorm 1>&2; exit 130' SIGINT
+trap 'echo "Terminated."; tput cnorm 1>&2; exit 143' SIGTERM
+trap cleanup EXIT
 
 for cmd in ffmpeg awk seq tput jq; do
 	command -v "$cmd" &> /dev/null || { echo "Error: Required program \"$cmd\" not found" >&2; exit 1; }
@@ -72,7 +82,6 @@ Options:
 "
 
 #readonly PROCESSING_LIMIT=100
-readonly VERSION="1.0.0"
 readonly DEFAULT_EXTENSIONS=("aac" "ac3" "aif" "aiff" "amr" "caf" "flac" "m4a" "mp3" "ogg" "opus" "pcm" "wav" "wma")
 COLS=$(tput cols)
 readonly COLS
@@ -91,7 +100,7 @@ QUIET="false"
 #
 while [[ $# -gt 0 ]]; do
     case "$1" in
-		help|-h|--help)
+		help|-h|--help|-\?)
 			echo "$HELP"
 			exit 0
 			;;
@@ -515,7 +524,6 @@ ERROR_LOG="$(mktemp)"
 readonly ERROR_LOG
 RESULTS_FILE="$(mktemp)"
 readonly RESULTS_FILE
-trap 'rm --force "$RESULTS_FILE" 2> /dev/null; rm --force "$ERROR_LOG" 2> /dev/null' EXIT
 
 #
 # Build the active extension list
