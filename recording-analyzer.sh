@@ -17,7 +17,7 @@ trap 'echo "Aborted."; tput cnorm 1>&2; exit 130' SIGINT
 trap 'echo "Terminated."; tput cnorm 1>&2; exit 143' SIGTERM
 trap cleanup EXIT
 
-for cmd in ffmpeg awk seq tput jq; do
+for cmd in awk ffmpeg ffprobe jq sed seq tput; do
 	command -v "$cmd" &> /dev/null || { echo "Error: Required program \"$cmd\" not found" >&2; exit 1; }
 done
 
@@ -32,9 +32,10 @@ readonly HELP="
 │                                                                              │
 ╰──────────────────────────────────────────────────────────────────────────────╯
 
-Usage: $THIS_PGM <audio_file>
-       - or -
-       $THIS_PGM <directory>
+Usage:
+	$THIS_PGM <audio_file> ...
+	- or -
+	$THIS_PGM <directory> ...
 
 This program is used to analyze audio files and extract various statistics.
 The script provides insights into the quality and characteristics of the
@@ -43,10 +44,10 @@ interested in understanding the technical aspects of their audio files.
 
 JSON output format is available for easy integration with other tools or for
 further processing. Metadata fields can also be included in the output for a
-more comprehensive analysis. Upload the JSON output of your audio files to the
-web interface at https://mcochris.com/recording-analyzer/ to view an interactive
-visualization of the statistics, create playlists and spreadsheets based on the
-analysis results.
+more comprehensive analysis. Upload the JSON output of your audio files to
+https://recording-analyzer.mcochris.com/ to view an interactive visualization
+of the statistics, create playlists and spreadsheets based on the analysis
+results.
 
 Options:
   -h, --help        Show this help message and exit
@@ -64,24 +65,18 @@ Options:
 	# Analyze all music files in a directory recursively
 	$THIS_PGM --recurse ~/Music
 
-	# Analyze multiple music files with JSON output
-	$THIS_PGM --json ~/Music/*.flac
-
-	# Analyze a single file with metadata included
-	$THIS_PGM --metadata ~/Music/track.flac
-
-	# Analyze multiple music files with JSON output and metadata included
-	$THIS_PGM --json --metadata ~/Music/*.flac
+	# Analyze files and directories with metadata included
+	$THIS_PGM --metadata ~/Music/track.flac ../song.mp3 /mnt/nas/audio/album/
 
 	# Analyze music files and redirect JSON output to a file for use with the web
-	# interface at https://mcochris.com/recording-analyzer/
+	# page at https://recording-analyzer.mcochris.com/
 	$THIS_PGM --json --metadata ~/Music/*.flac > analysis_results.json
 
 	Questions, issues, suggestions? Please open a support ticket at:
 	https://github.com/mcochris/Recording-analyzer/issues
 "
 
-#readonly PROCESSING_LIMIT=100
+#readonly PROCESSING_LIMIT=10000
 readonly DEFAULT_EXTENSIONS=("aac" "ac3" "aif" "aiff" "amr" "caf" "flac" "m4a" "mp3" "ogg" "opus" "pcm" "wav" "wma")
 COLS=$(tput cols)
 readonly COLS
@@ -99,7 +94,7 @@ QUIET="false"
 # Loop through arguments and handle options
 #
 while [[ $# -gt 0 ]]; do
-    case "$1" in
+	case "$1" in
 		help|-h|--help|-\?)
 			echo "$HELP"
 			exit 0
@@ -108,14 +103,14 @@ while [[ $# -gt 0 ]]; do
 			echo "$THIS_PGM version $VERSION"
 			exit 0
 			;;
-        -j|--json)
-            JSON_OUTPUT="true"
-            shift
-            ;;
-        -m|--metadata)
-            INCLUDE_METADATA="true"
-            shift
-            ;;
+		-j|--json)
+			JSON_OUTPUT="true"
+			shift
+			;;
+		-m|--metadata)
+			INCLUDE_METADATA="true"
+			shift
+			;;
 		-q|--quiet)
 			QUIET="true"
 			shift
@@ -124,15 +119,15 @@ while [[ $# -gt 0 ]]; do
 			RECURSE_FLAG=("-r")
 			shift
 			;;
-        *)
+		*)
 			if [[ "$1" == -* ]]; then
-                echo "Warning: ignoring unknown option '$1'" >&2
-            else
-                POSITIONAL+=("$1")
-            fi
-            shift
-            ;;
-	    esac
+				echo "Warning: ignoring unknown option '$1'" >&2
+			else
+				POSITIONAL+=("$1")
+			fi
+			shift
+			;;
+		esac
 done
 
 readonly JSON_OUTPUT
@@ -144,10 +139,57 @@ set -- "${POSITIONAL[@]}"
 # Sanitize and load one extension from a raw token
 #
 function parse_extension() {
-    local ext
-    # Lowercase, strip leading dots and any non-alphanumeric chars except hyphens
-    ext=$(echo "$1" | tr '[:upper:]' '[:lower:]' | sed 's/^\.*//' | tr -cd '[:alnum:]-')
-    echo "$ext"
+	local ext
+	# Lowercase, strip leading dots and any non-alphanumeric chars except hyphens
+	ext=$(echo "$1" | tr '[:upper:]' '[:lower:]' | sed 's/^\.*//' | tr -cd '[:alnum:]-')
+	echo "$ext"
+}
+
+#
+# Check for updates by fetching the latest version string from the GitHub repository
+#
+check_for_update() {
+  local remote
+  remote=$(curl -sf --max-time 3 \
+    "https://api.github.com/repos/mcochris/Recording-analyzer/releases/latest" \
+    | grep '"tag_name":' | head -1 | cut -d'"' -f4) || return
+
+  if [[ -z "$remote" ]]; then
+    return  # Silently skip if fetch fails
+  fi
+
+  if [[ "$remote" != "$VERSION" ]]; then
+    echo "Update available: v$remote (you have v$VERSION)"
+    echo "Update: curl --remote-name https://raw.githubusercontent.com/mcochris/Recording-analyzer/main/recording-analyzer.sh"
+  fi
+}
+
+# Helper: add a single file if it matches an audio extension
+function add_if_audio() {
+	local f="$1"
+	if [[ -f "$f" ]] && [[ "${f,,}" =~ $ext_pattern ]]; then
+		AUDIO_FILES+=("$f")
+		msg="Scanning... found ${#AUDIO_FILES[@]} file(s)"
+		[[ "$QUIET" = "false" ]] && printf "\r%s\033[K" "${msg:0:$COLS}" >&2
+	fi
+}
+
+# Helper: add audio files from a directory (non-recursive)
+function add_dir_flat() {
+	local dir="$1"
+	local f
+	while IFS= read -r -d '' f; do
+		add_if_audio "$f"
+	done < <(find "$dir" -maxdepth 1 -type f -a \( "${find_args[@]}" \) -print0)
+}
+
+# Helper: add audio files from a directory (recursive)
+function add_dir_recursive() {
+	local dir="$1"
+	local f
+	while IFS= read -r -d '' f; do
+		add_if_audio "$f"
+	done < <(find "$dir" -type f -a \( "${find_args[@]}" \) -print0)
 }
 
 #
@@ -155,170 +197,139 @@ function parse_extension() {
 # Sets the global array AUDIO_FILES with the resolved file list.
 #
 function collect_audio_files() {
-    AUDIO_FILES=()
-    local recurse=false
-    # Parse -r flag from this function's own args
-    local args=()
-    while [[ $# -gt 0 ]]; do
-        case "$1" in
-            -r) recurse=true ;;
-            --) shift; args+=("$@"); break ;;
+	AUDIO_FILES=()
+	local recurse=false
+	# Parse -r flag from this function's own args
+	local args=()
+	while [[ $# -gt 0 ]]; do
+		case "$1" in
+			-r) recurse=true ;;
+			--) shift; args+=("$@"); break ;;
 			*)  args+=("$1") ;;
-        esac
-        shift
-    done
+		esac
+		shift
+	done
 
-    # Build a regex pattern like \.(mp3|flac|wav|...)$ for extension matching
-    local ext_pattern
-    ext_pattern=$(printf '%s|' "${EXTENSIONS[@]}")
-    ext_pattern="\\.(${ext_pattern%|})$"
+	# Build a regex pattern like \.(mp3|flac|wav|...)$ for extension matching
+	local ext_pattern
+	ext_pattern=$(printf '%s|' "${EXTENSIONS[@]}")
+	ext_pattern="\\.(${ext_pattern%|})$"
 
-    # Helper: add a single file if it matches an audio extension
-	function _add_if_audio() {
-        local f="$1"
-        if [[ -f "$f" ]] && [[ "${f,,}" =~ $ext_pattern ]]; then
-            AUDIO_FILES+=("$f")
-			msg="Scanning... found ${#AUDIO_FILES[@]} file(s)"
-			[[ "$QUIET" = "false" ]] && echo -e -n "\r${msg:0:$((COLS))}\033[K" >&2
-            #[[ "$QUIET" = "false" ]] && printf "\rScanning... found %d file(s): \"%s\"\033[K" "${#AUDIO_FILES[@]}" "$(basename "$f")" >&2
-        fi
-    }
+	# Process each positional argument
+	local arg
+	for arg in "${args[@]}"; do
+		# Expand ~ manually since it won't expand inside a variable
+		arg="${arg/#\~/$HOME}"
 
-    # Helper: add audio files from a directory (non-recursive)
-    function _add_dir_flat() {
-        local dir="$1"
-        local f
-        while IFS= read -r -d '' f; do
-            _add_if_audio "$f"
-        done < <(find "$dir" -maxdepth 1 -type f -a \( "${find_args[@]}" \) -print0)
-    }
+		if [[ -d "$arg" ]]; then
+			# Argument is a directory
+			if "$recurse"; then
+				add_dir_recursive "$arg"
+			else
+				add_dir_flat "$arg"
+			fi
 
-    # Helper: add audio files from a directory (recursive)
-    function _add_dir_recursive() {
-        local dir="$1"
-        local f
-        while IFS= read -r -d '' f; do
-            _add_if_audio "$f"
-        done < <(find "$dir" -type f -a \( "${find_args[@]}" \) -print0)
-    }
+		elif [[ -f "$arg" ]]; then
+			# Argument is a literal existing file
+			add_if_audio "$arg"
 
-    # Process each positional argument
-    local arg
-    for arg in "${args[@]}"; do
-        # Expand ~ manually since it won't expand inside a variable
-        arg="${arg/#\~/$HOME}"
+		else
+			# Got a glob pattern?
+			local match
+			local match_count=0
+			while IFS= read -r match; do
+				match_count=$((match_count + 1))
+				if [[ -d "$match" ]]; then
+					if "$recurse"; then
+						add_dir_recursive "$match"
+					else
+						add_dir_flat "$match"
+					fi
+				else
+					add_if_audio "$match"
+				fi
+			done < <(compgen -G "$arg" 2>/dev/null)
 
-        if [[ -d "$arg" ]]; then
-            # Argument is a directory
-            if "$recurse"; then
-                _add_dir_recursive "$arg"
-            else
-                _add_dir_flat "$arg"
-            fi
+			if [[ $match_count -eq 0 ]]; then
+				error_log "Warning: no matches found for: $arg"
+			fi
+		fi
+	done
 
-        elif [[ -f "$arg" ]]; then
-            # Argument is a literal existing file
-            _add_if_audio "$arg"
-
-        else
-            # Treat as a glob pattern — use eval carefully with a controlled expand
-            # We use 'compgen -G' to safely expand the glob without eval
-            local match
-            while IFS= read -r match; do
-                if [[ -d "$match" ]]; then
-                    if "$recurse"; then
-                        _add_dir_recursive "$match"
-                    else
-                        _add_dir_flat "$match"
-                    fi
-                else
-                    _add_if_audio "$match"
-                fi
-            done < <(compgen -G "$arg" 2>/dev/null || true)
-
-            if [[ ${PIPESTATUS[0]} -ne 0 ]]; then
-                error_log "Warning: no matches found for: $arg"
-            fi
-        fi
-    done
-
-    # Remove duplicates while preserving order
-    local seen=()
-    local unique=()
-    local f
+	# Remove duplicates while preserving order
+	local unique=()
+	local f
 	# shellcheck disable=SC1003
 	local frames=('-' '\' '|' '/')
-    local i=0
+	local i=0
 	local j=1
-    tput civis 1>&2
+	tput civis 1>&2
 
-    for f in "${AUDIO_FILES[@]}"; do
-        local real
-        real=$(realpath --strip "$f" 2>/dev/null || echo "$f")
-        # shellcheck disable=SC2076
-        if [[ ! " ${seen[*]} " =~ " ${real} " ]]; then
-            seen+=("$real")
-            unique+=("$f")
-        fi
+	for f in "${AUDIO_FILES[@]}"; do
+		local real
+		real=$(realpath --no-symlinks "$f" 2>/dev/null || echo "$f")
+		declare -A seen_map
+		if [[ -z "${seen_map[$real]+_}" ]]; then
+			seen_map[$real]=1
+			unique+=("$f")
+		fi
 		if [[ "$QUIET" = "false" ]]; then
-			echo -e -n "\r\033[KFound ${#AUDIO_FILES[@]} files, preparing file $j... ${frames[$i]}" 1>&2
+			printf "\r\033[KFound %d files, preparing file %d... %s" "${#AUDIO_FILES[@]}" "$j" "${frames[$i]}" 1>&2
 			i=$(( (i + 1) % ${#frames[@]} ))
 			j=$((j + 1))
 		fi
-    done
+	done
 
-    # Clear the spinner line and restore cursor
-    printf "\r\033[K" 1>&2
-    tput cnorm 1>&2
+	# Clear the spinner line and restore cursor
+	printf "\r\033[K" 1>&2
+	tput cnorm 1>&2
 
-    AUDIO_FILES=("${unique[@]}")
+	AUDIO_FILES=("${unique[@]}")
 }
 
 #
 # Spinner function to show progress while long-running task is executing
 #
 function spinner() {
-    local pid="$1"
-    local message="$2"
+	local pid="$1"
+	local message="$2"
 	# shellcheck disable=SC1003
 	local frames=('-' '\' '|' '/')
-    local i=0
+	local i=0
 
-    # Hide cursor
-    tput civis 1>&2
+	# Hide cursor
+	tput civis 1>&2
 
-    while kill -0 "$pid" 2>/dev/null; do
-        printf "\r%s... %s" "${message:0:$((COLS-5))}" "${frames[$i]}" 1>&2
-        i=$(( (i + 1) % ${#frames[@]} ))
-        #sleep 0.1
-    done
+	while kill -0 "$pid" 2>/dev/null; do
+		printf "\r%s... %s" "${message:0:$((COLS-5))}" "${frames[$i]}" 1>&2
+		i=$(( (i + 1) % ${#frames[@]} ))
+		sleep 0.1
+	done
 
-    # Clear the spinner line and restore cursor
-    printf "\r\033[K" 1>&2
-    tput cnorm 1>&2
+	# Clear the spinner line and restore cursor
+	printf "\r\033[K" 1>&2
+	tput cnorm 1>&2
 }
 
 #
 # Function to log errors to a file
 #
 function error_log() {
-	local message="$1"
-	echo "ERROR: $message" >> "$ERROR_LOG"
+	echo "ERROR: $1" >> "$ERROR_LOG"
 }
 
 #
 # Functions to extract specific pieces of information from ffprobe output
 #
 function get_metadata() {
-	local field="$1"
-	echo "$FFPROBE" | grep "$field" | head --lines 1 | awk -F '"' '{print $4}' || true
+	echo "$FFPROBE" | jq -r --arg f "$1" '.streams[0][$f] // .format[$f] // empty'
 }
 
 #
 # Extract duration in seconds, rounded to nearest whole number
 #
 function get_duration() {
-	echo "$FFPROBE" | grep '"duration"' | tail --lines 1 | awk -F '"' '{printf "%.0f", $4}' || true
+	echo "$FFPROBE" | jq -r '.format.duration // empty' | awk '{printf "%.0f", $1}'
 }
 
 #
@@ -338,8 +349,7 @@ function get_stat() {
 # Extract a field from the loudnorm JSON
 #
 function get_loudnorm() {
-	local field="$1"
-	echo "$LOUDNORM" | grep "\"$field\"" | awk -F'"' '{print $4}'
+	echo "$LOUDNORM" | jq -r --arg f "$1" '.[$f] // empty'
 }
 
 #
@@ -531,24 +541,24 @@ readonly RESULTS_FILE
 declare -a EXTENSIONS
 AUDIO_EXTENSIONS="${AUDIO_EXTENSIONS:-}"
 if [[ -n "$AUDIO_EXTENSIONS" ]]; then
-    # Read the env var into an array (word-splitting on spaces/tabs is intentional here)
-    read -r -a raw_exts <<< "$AUDIO_EXTENSIONS"
+	# Read the env var into an array (word-splitting on spaces/tabs is intentional here)
+	read -r -a raw_exts <<< "$AUDIO_EXTENSIONS"
 
-    for raw in "${raw_exts[@]}"; do
-        cleaned=$(parse_extension "$raw")
-        if [[ -n "$cleaned" ]]; then
-            EXTENSIONS+=("$cleaned")
-        else
-            echo "Warning: skipping invalid extension token: '$raw'" >&2
-        fi
-    done
+	for raw in "${raw_exts[@]}"; do
+		cleaned=$(parse_extension "$raw")
+		if [[ -n "$cleaned" ]]; then
+			EXTENSIONS+=("$cleaned")
+		else
+			echo "Warning: skipping invalid extension token: '$raw'" >&2
+		fi
+	done
 
-    if [[ ${#EXTENSIONS[@]} -eq 0 ]]; then
-        echo "Warning: AUDIO_EXTENSIONS contained no valid values, using defaults." >&2
-        EXTENSIONS=("${DEFAULT_EXTENSIONS[@]}")
-    fi
+	if [[ ${#EXTENSIONS[@]} -eq 0 ]]; then
+		echo "Warning: AUDIO_EXTENSIONS contained no valid values, using defaults." >&2
+		EXTENSIONS=("${DEFAULT_EXTENSIONS[@]}")
+	fi
 else
-    EXTENSIONS=("${DEFAULT_EXTENSIONS[@]}")
+	EXTENSIONS=("${DEFAULT_EXTENSIONS[@]}")
 fi
 
 readonly EXTENSIONS
@@ -558,8 +568,8 @@ readonly EXTENSIONS
 #
 find_args=()
 for i in "${!EXTENSIONS[@]}"; do
-    [[ $i -gt 0 ]] && find_args+=(-o)
-    find_args+=(-iname "*.${EXTENSIONS[$i]}")
+	[[ $i -gt 0 ]] && find_args+=(-o)
+	find_args+=(-iname "*.${EXTENSIONS[$i]}")
 done
 readonly find_args
 
@@ -593,10 +603,10 @@ done
 # Finalize JSON output if needed, and display results or errors
 #
 if [[ "$JSON_OUTPUT" = "false" ]]; then
-    echo "" >> "$RESULTS_FILE"
+	echo "" >> "$RESULTS_FILE"
 else
-    sed --in-place '$ s/,$//' "$RESULTS_FILE"
-    echo "]" >> "$RESULTS_FILE"
+	sed --in-place '$ s/,$//' "$RESULTS_FILE"
+	echo "]" >> "$RESULTS_FILE"
 fi
 
 #
@@ -609,14 +619,18 @@ else
 fi
 
 #
-# Display any warnings about processing limits and show error logs if present
+# Display any warnings about processing limits and show error log if present
 #
 #[[ "$row" -gt $PROCESSING_LIMIT ]] && echo "WARNING: Processing was limited to $PROCESSING_LIMIT files." >&2
-
-[[ -s "$ERROR_LOG" ]] && cat "$ERROR_LOG" | sort | uniq >&2
+[[ -s "$ERROR_LOG" ]] && sort --unique "$ERROR_LOG" >&2
 
 #
 # Cleanup temporary files (also handled by trap on EXIT)
 #
 rm --force "$RESULTS_FILE" 2> /dev/null
 rm --force "$ERROR_LOG" 2> /dev/null
+
+#
+# Check for updates after processing is done, so it doesn't interfere with the main task
+#
+check_for_update

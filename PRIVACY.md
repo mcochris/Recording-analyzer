@@ -11,19 +11,16 @@ It does not collect, transmit, store, or share any information about you or your
 
 - Reads audio files that you explicitly pass to it as arguments
 - Analyzes those files locally and prints results to your terminal
+- Automatically checks Github for latest version
 
 ## What the app does NOT do
 
 - It does not collect personal data
-- It does not transmit data over the internet ("phone home")
-- It does not create logs, telemetry, or analytics
+- It does not send the data it analyzes anywhere
+- It does not create logs or gather analytics
 - It does not display advertising
 - It does not track usage or behavior
 - It does not read files beyond those you explicitly provide
-
-## Third-party services
-
-None. The app has no network activity and uses no third-party services.
 
 ## recording-analyzer website
 

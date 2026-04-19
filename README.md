@@ -38,15 +38,26 @@ This tool fills that gap by providing:
 
 ## ✅ Requirements
 
-The BASH shell, ffmpeg, and jq programs must be available on your computer. On Ubuntu linux, you can install them via:
+The BASH shell, ffmpeg, ffprobe, and jq programs must be available on your computer. On Ubuntu linux, you can install them via:
 
 ```shell
-sudo apt install ffmpeg jq
+sudo apt install ffmpeg ffprobe awk seq tput jq
 ```
+
+(some may already be installed on you computer)
 
 ## 📦 Installation
 
-Cut-n-paste from <https://raw.githubusercontent.com/mcochris/Recording-analyzer/refs/heads/main/recording-analyzer.sh> or
+Cut-n-paste from <https://raw.githubusercontent.com/mcochris/Recording-analyzer/refs/heads/main/recording-analyzer.sh>
+
+or
+
+```bash
+curl --remote-name https://raw.githubusercontent.com/mcochris/Recording-analyzer/main/recording-analyzer.sh
+chmod +x recording-analyzer.sh
+```
+
+or
 
 ```bash
 git clone https://github.com/mcochris/Recording-analyzer.git
