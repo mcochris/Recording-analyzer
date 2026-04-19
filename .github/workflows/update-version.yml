@@ -1,0 +1,31 @@
+name: Update version on release
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  update-version:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        with:
+          ref: main  # or master, or whatever your default branch is
+
+      - name: Update version in script
+        run: |
+          # Strip the leading 'v' from the tag (e.g. v1.2.3 -> 1.2.3)
+          VERSION="${GITHUB_REF_NAME}"
+          sed -i "s/^readonly VERSION=.*/readonly VERSION=\"$VERSION\"/" recording-analyzer.sh
+
+      - name: Commit and push updated version
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add recording-analyzer.sh
+          git commit -m "chore: bump version to ${GITHUB_REF_NAME}"
+          git push
