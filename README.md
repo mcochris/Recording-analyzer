@@ -16,7 +16,7 @@ Most tools either:
 
 - focus on **system or room measurement** (for example, REW)
 - provide **raw ffmpeg output** without a concise summary
-- reduce audio to a **single score** rather than showing multiple useful metrics
+- analysis plugins that output a single quality score
 
 This tool fills that gap by providing:
 
@@ -33,18 +33,16 @@ This tool fills that gap by providing:
 - Crest factor (dB)
 - Stereo correlation (phase)
 - Loudness (EBU R128: LUFS, LRA, true peak)
-- Optional file metadata (genre, artist, album, track, duration, year, sample rate, average bit rate, bits per sample). recording-analyzer uses the metadata already in the file, it does not perform metadata lookups.
+- Metadata: genre, artist, album, track, duration, year, sample rate, average bit rate, and bits per sample can be displayed. recording-analyzer uses the metadata already in the file, it does not perform metadata lookups.
 - File formats supported: aac, ac3, aif, aiff, amr, caf, flac, m4a, mp3, ogg, opus, pcm, wav, wma
 
 ## ✅ Requirements
 
-The BASH shell, ffmpeg, ffprobe, and jq programs must be available on your computer. On Ubuntu linux, you can install them via:
+The BASH shell, ffmpeg, and jq programs must be available on your computer. On Ubuntu linux, you can install them via:
 
 ```shell
-sudo apt install ffmpeg ffprobe awk seq tput jq
+sudo apt install ffmpeg jq
 ```
-
-(some may already be installed on you computer)
 
 ## 📦 Installation
 
@@ -54,7 +52,6 @@ or
 
 ```bash
 curl --remote-name https://raw.githubusercontent.com/mcochris/Recording-analyzer/main/recording-analyzer.sh
-chmod +x recording-analyzer.sh
 ```
 
 or
@@ -62,10 +59,16 @@ or
 ```bash
 git clone https://github.com/mcochris/Recording-analyzer.git
 cd Recording-analyzer
-chmod +x recording-analyzer.sh
 ```
 
-then copy recording-analyzer.sh to a directory in your $PATH to make the program executable from anywhere.
+then copy recording-analyzer.sh to a directory in your $PATH to make the program executable from anywhere. Example:
+
+```bash
+sudo cp recording-analyzer.sh /usr/local/bin
+sudo chown $(id -un):$(id -gn) /usr/local/bin/recording-analyzer.sh # make you the file owner
+chmod +x /usr/local/bin/recording-analyzer.sh # make it executable
+hash -r #refresh shell's command cache
+```
 
 ## ▶️ Usage
 
@@ -124,7 +127,7 @@ Right Channel:
   Crest Factor:   10.68 dB
 
 Stereo Correlation:
-  Average Phase:  0.4893 degrees
+  Average Phase:  0.4893
 
 Loudness (EBU R128):
   Integrated Loudness:  -19.37 LUFS
@@ -132,8 +135,10 @@ Loudness (EBU R128):
   Loudness Range:       4.00 LU
 ```
 
+## 🖥️ Example Output with metadata
+
 ```text
-chris@studio:~/audio$ recording-analyzer.sh "The Things We Do for Love.flac"
+chris@studio:~/audio$ recording-analyzer.sh --metadata "The Things We Do for Love.flac"
 
 Audio Analysis: "The Things We Do for Love.flac"
 ================================================
@@ -152,15 +157,15 @@ Metadata:
 Left Channel:
   Peak Level:     -1.76 dBFS
   Noise Floor:    -inf dBFS
-  Crest Factor:   6.29°
+  Crest Factor:   6.29 dB
 
 Right Channel:
   Peak Level:     -0.55 dBFS
   Noise Floor:    -inf dBFS
-  Crest Factor:   6.67°
+  Crest Factor:   6.67 dB
 
 Stereo Correlation:
-  Average Phase:  0.31 degrees
+  Average Phase:  0.31
 
 Loudness (EBU R128):
   Integrated Loudness:  -13.92 LUFS
@@ -188,7 +193,7 @@ measured in dB. A higher crest factor indicates high dynamics (12–15+ dB, e.g.
 drums), while a lower, smaller value suggests heavy compression or a denser,
 more consistent sound (6–9 dB).
 
-**Stereo Correlation**
+**Stereo correlation (phase)**
 Stereo audio average phase, often visualized via a phase correlation meter,
 measures the similarity between left and right channels, averaging from -1
 (fully out-of-phase) to +1 (fully in-phase). A positive average (+0.1 to +1)
