@@ -237,6 +237,12 @@ function collect_audio_files() {
     local seen=()
     local unique=()
     local f
+	# shellcheck disable=SC1003
+	local frames=('-' '\' '|' '/')
+    local i=0
+	local j=1
+    tput civis 1>&2
+
     for f in "${AUDIO_FILES[@]}"; do
         local real
         real=$(realpath --strip "$f" 2>/dev/null || echo "$f")
@@ -245,7 +251,17 @@ function collect_audio_files() {
             seen+=("$real")
             unique+=("$f")
         fi
+		if [[ "$QUIET" = "false" ]]; then
+			echo -e -n "\r\033[KFound ${#AUDIO_FILES[@]} files, preparing file $j... ${frames[$i]}" 1>&2
+			i=$(( (i + 1) % ${#frames[@]} ))
+			j=$((j + 1))
+		fi
     done
+
+    # Clear the spinner line and restore cursor
+    printf "\r\033[K" 1>&2
+    tput cnorm 1>&2
+
     AUDIO_FILES=("${unique[@]}")
 }
 
@@ -539,7 +555,6 @@ for i in "${!EXTENSIONS[@]}"; do
 done
 readonly find_args
 
-echo "Collecting audio files..." >&2
 collect_audio_files "${RECURSE_FLAG[@]}" -- "${POSITIONAL[@]}"
 [[ "$QUIET" = "false" ]] && printf "\r\033[K" >&2
 #[[ ${#AUDIO_FILES[@]} -gt $PROCESSING_LIMIT ]] && echo "$THIS_PGM: WARNING: Processing will be limited to $PROCESSING_LIMIT files." >&2
