@@ -104,6 +104,8 @@
 
 - entering invalid dir/filename in recording-analyzer gets a "error line 198" messages (FIXED)
 
+- long pause after scanning for files (FIXED)
+
 
 ==============================================================================
 
@@ -113,7 +115,7 @@
 
 - test on windows
 
-- long pause after scanning for files
+- cp recording-analyzer.sh to a dir in your path and make sure it still Works
 
 - add a FAQ:
 	- how do i get the pgm into a dir in my $PATH?
