@@ -1,28 +1,77 @@
 #!/usr/bin/env bash
+#
+# ╭──────────────────────────────────────────────────────────────────────────────╮
+# │                                                                              │
+# │                        Welcome to recording-analyzer!                        │
+# │                                                                              │
+# │                  Analyze audio files and extract statistics                  │
+# │                                                                              │
+# │             For more details, please visit the GitHub repository:            │
+# │	               https://github.com/mcochris/Recording-analyzer                │
+# │                                                                              │
+# │        Questions, issues, suggestions? Please open a support ticket at:      │
+# │             https://github.com/mcochris/Recording-analyzer/issues            │
+# │                                                                              │
+# ╰──────────────────────────────────────────────────────────────────────────────╯
 
+#
+# Sanity checks and strict mode settings.
+#
+#set -o xtrace
+set -o errexit
+set -o nounset
+set -o pipefail
+set -o errtrace
+
+#
+# Program version is automatically updated by GitHub Actions on new releases.
+#
 readonly VERSION="1.0.0"
 
+#
+# Create temporary files for error logging and results output.
+#
+ERROR_LOG="$(mktemp)"
+readonly ERROR_LOG
+RESULTS_FILE="$(mktemp)"
+readonly RESULTS_FILE
+
+#
+# Cleanup function to remove temporary files and restore terminal state on exit.
+#
 function cleanup() {
 	[[ -n "${RESULTS_FILE:-}" ]] && rm --force "$RESULTS_FILE" 2> /dev/null
 	[[ -n "${ERROR_LOG:-}" ]] && rm --force "$ERROR_LOG" 2> /dev/null
 	tput cnorm 1>&2
 }
 
-#set -o xtrace
-set -o errexit
-set -o nounset
-set -o pipefail
-set -o errtrace
+#
+# Function to log errors to a file.
+#
+function error_log() {
+	echo "ERROR: $1" >> "$ERROR_LOG"
+}
+
+#
+# Set traps for signals to ensure cleanup is performed.
+#
 trap 'echo "Aborted."; tput cnorm 1>&2; exit 130' SIGINT
 trap 'echo "Terminated."; tput cnorm 1>&2; exit 143' SIGTERM
 trap cleanup EXIT
 
-for cmd in awk ffmpeg ffprobe jq sed seq tput; do
+#
+# Check for required external programs.
+#
+for cmd in ffmpeg ffprobe jq; do
 	command -v "$cmd" &> /dev/null || { echo "Error: Required program \"$cmd\" not found" >&2; exit 1; }
 done
 
+#
+# Get the program name for usage messages and other references.
+#
 THIS_PGM=$(basename "$0")
 readonly THIS_PGM
+# Check if at least one argument is provided, otherwise show usage and exit.
 [[ $# -eq 0 ]] && { echo "Usage: $THIS_PGM <audio_file>"; exit 1; }
 
 readonly HELP="
@@ -72,20 +121,31 @@ Options:
 	# page at https://recording-analyzer.mcochris.com/
 	$THIS_PGM --json --metadata ~/Music/*.flac > analysis_results.json
 
-	For more details and troubleshooting, please visit the GitHub repository:
+	For more details, please visit the GitHub repository:
 	https://github.com/mcochris/Recording-analyzer
 
 	Questions, issues, suggestions? Please open a support ticket at:
 	https://github.com/mcochris/Recording-analyzer/issues
 "
 
-#readonly PROCESSING_LIMIT=10000
+#
+# Optional processing limit to prevent overloading the system with too many files.
+#
+readonly PROCESSING_LIMIT=0  # Set to 0 for no limit.
+
+#
+# Default audio file extensions to look for (can be overridden by AUDIO_EXTENSIONS env var).
+#
 readonly DEFAULT_EXTENSIONS=("aac" "ac3" "aif" "aiff" "amr" "caf" "flac" "m4a" "mp3" "ogg" "opus" "pcm" "wav" "wma")
+
+#
+# Get terminal width for dynamic output formatting (e.g., spinner messages).
+#
 COLS=$(tput cols)
 readonly COLS
 
 #
-# Parse command-line options.
+# Default command-line options.
 #
 JSON_OUTPUT="false"
 INCLUDE_METADATA="false"
@@ -94,7 +154,7 @@ POSITIONAL=()
 QUIET="false"
 
 #
-# Loop through arguments and handle options
+# Loop through options and arguments, handling known flags and collecting positional arguments for file processing.
 #
 while [[ $# -gt 0 ]]; do
 	case "$1" in
@@ -124,7 +184,7 @@ while [[ $# -gt 0 ]]; do
 			;;
 		*)
 			if [[ "$1" == -* ]]; then
-				echo "Warning: ignoring unknown option '$1'" >&2
+				error_log "Warning: ignoring unknown option '$1'" >&2
 			else
 				POSITIONAL+=("$1")
 			fi
@@ -133,13 +193,16 @@ while [[ $# -gt 0 ]]; do
 		esac
 done
 
+#
+# Make the parsed options read-only and set the positional parameters to the collected file arguments.
+#
 readonly JSON_OUTPUT
 readonly INCLUDE_METADATA
 readonly QUIET
 set -- "${POSITIONAL[@]}"
 
 #
-# Sanitize and load one extension from a raw token
+# Sanitize and load one extension from a raw token.
 #
 function parse_extension() {
 	local ext
@@ -149,7 +212,8 @@ function parse_extension() {
 }
 
 #
-# Check for updates by fetching the latest version string from the GitHub repository
+# Check for updates by fetching the latest version string from the GitHub repository.
+# This function is not called if QUIET is true.
 #
 check_for_update() {
 	tput civis 1>&2
@@ -170,14 +234,14 @@ check_for_update() {
 	if [[ "$remote" != "$VERSION" ]]; then
 		printf "\r%s\033[K\n" "Update available: v$remote (you have v$VERSION)" 1>&2
 		echo "Update: curl --remote-name https://raw.githubusercontent.com/mcochris/Recording-analyzer/main/recording-analyzer.sh" 1>&2
-	else
-		printf "\r%s\033[K\n" "You are using the latest version (v$VERSION)" 1>&2
   	fi
 
 	tput cnorm 1>&2
 }
 
-# Helper: add a single file if it matches an audio extension
+#
+# Helper: add a single file if it matches an audio extension.
+#
 function add_if_audio() {
 	local f="$1"
 	if [[ -f "$f" ]] && [[ "${f,,}" =~ $ext_pattern ]]; then
@@ -187,7 +251,9 @@ function add_if_audio() {
 	fi
 }
 
-# Helper: add audio files from a directory (non-recursive)
+#
+# Helper: add audio files from a directory (non-recursive).
+#
 function add_dir_flat() {
 	local dir="$1"
 	local f
@@ -196,7 +262,9 @@ function add_dir_flat() {
 	done < <(find "$dir" -maxdepth 1 -type f -a \( "${find_args[@]}" \) -print0)
 }
 
-# Helper: add audio files from a directory (recursive)
+#
+# Helper: add audio files from a directory (recursive).
+#
 function add_dir_recursive() {
 	local dir="$1"
 	local f
@@ -206,13 +274,11 @@ function add_dir_recursive() {
 }
 
 #
-# Usage: collect_audio_files [OPTIONS] -- arg1 arg2 ...
 # Sets the global array AUDIO_FILES with the resolved file list.
 #
 function collect_audio_files() {
 	AUDIO_FILES=()
 	local recurse=false
-	# Parse -r flag from this function's own args
 	local args=()
 	while [[ $# -gt 0 ]]; do
 		case "$1" in
@@ -223,7 +289,7 @@ function collect_audio_files() {
 		shift
 	done
 
-	# Build a regex pattern like \.(mp3|flac|wav|...)$ for extension matching
+	# Build a regex pattern like \.(mp3|flac|wav|...)$ for extension matching.
 	local ext_pattern
 	ext_pattern=$(printf '%s|' "${EXTENSIONS[@]}")
 	ext_pattern="\\.(${ext_pattern%|})$"
@@ -231,11 +297,11 @@ function collect_audio_files() {
 	# Process each positional argument
 	local arg
 	for arg in "${args[@]}"; do
-		# Expand ~ manually since it won't expand inside a variable
+		# Expand ~ manually since it won't expand inside a variable.
 		arg="${arg/#\~/$HOME}"
 
 		if [[ -d "$arg" ]]; then
-			# Argument is a directory
+			# Argument is a directory.
 			if "$recurse"; then
 				add_dir_recursive "$arg"
 			else
@@ -243,7 +309,7 @@ function collect_audio_files() {
 			fi
 
 		elif [[ -f "$arg" ]]; then
-			# Argument is a literal existing file
+			# Argument is a literal existing file.
 			add_if_audio "$arg"
 
 		else
@@ -269,7 +335,7 @@ function collect_audio_files() {
 		fi
 	done
 
-	# Remove duplicates while preserving order
+	# Remove duplicates while preserving order.
 	local unique=()
 	local f
 	# shellcheck disable=SC1003
@@ -278,6 +344,8 @@ function collect_audio_files() {
 	local j=1
 	tput civis 1>&2
 
+	# Use realpath to resolve symlinks and get a canonical path for each file, then use an associative array to track seen paths.
+	# This way we can avoid processing the same file multiple times if it appears in multiple locations.
 	for f in "${AUDIO_FILES[@]}"; do
 		local real
 		real=$(realpath --no-symlinks "$f" 2>/dev/null || echo "$f")
@@ -293,7 +361,7 @@ function collect_audio_files() {
 		fi
 	done
 
-	# Clear the spinner line and restore cursor
+	# Clear the spinner line and restore cursor.
 	printf "\r\033[K" 1>&2
 	tput cnorm 1>&2
 
@@ -301,7 +369,7 @@ function collect_audio_files() {
 }
 
 #
-# Spinner function to show progress while long-running task is executing
+# Spinner function to show progress while long-running task is executing.
 #
 function spinner() {
 	local pid="$1"
@@ -325,28 +393,21 @@ function spinner() {
 }
 
 #
-# Function to log errors to a file
-#
-function error_log() {
-	echo "ERROR: $1" >> "$ERROR_LOG"
-}
-
-#
-# Functions to extract specific pieces of information from ffprobe output
+# Functions to extract specific pieces of information from ffprobe output.
 #
 function get_metadata() {
 	echo "$FFPROBE" | jq -r --arg f "$1" '.streams[0][$f] // .format[$f] // empty'
 }
 
 #
-# Extract duration in seconds, rounded to nearest whole number
+# Extract duration in seconds, rounded to nearest whole number.
 #
 function get_duration() {
 	echo "$FFPROBE" | jq -r '.format.duration // empty' | awk '{printf "%.0f", $1}'
 }
 
 #
-# Extract a named stat from within a specific channel block
+# Extract a named stat from within a specific channel block.
 #
 function get_stat() {
 	local channel="$1"
@@ -359,20 +420,23 @@ function get_stat() {
 }
 
 #
-# Extract a field from the loudnorm JSON
+# Extract a field from the loudnorm JSON.
 #
 function get_loudnorm() {
 	echo "$LOUDNORM" | jq -r --arg f "$1" '.[$f] // empty'
 }
 
 #
-# Extract metadata tags from ffprobe output
+# Extract metadata tags from ffprobe output.
 #
 function get_metadata_tags() {
 	local field="$1"
 	echo "$FFPROBE" | jq -r --arg field "$field" '.format.tags[$field] // empty'
 }
 
+#
+#	Helper function to convert a value to an integer if it's a valid number, otherwise return empty string.
+#
 function integerize() {
 	local value="$1"
 	if [[ "$value" =~ ^[0-9]+$ ]]; then
@@ -383,31 +447,34 @@ function integerize() {
 }
 
 #
-#	Function to perform the long-running analysis task for a single file
+# Function to perform the long-running analysis task for a single file.
+# All the heavy lifting is done here, and the results are printed in the appropriate format (human-readable or JSON).
+# This function is run in the background for each file, allowing the main loop to show a spinner while it runs.
+# All output from this function is captured to RESULTS_FILE for later display.
 #
 function long_running_task() {
-	# Run ffmpeg with astats filter to get per-channel statistics
+	# Run ffmpeg with astats filter to get per-channel statistics.
 	ASTATS=$(ffmpeg -hide_banner -i "$file" -af "astats" -f null - 2>&1) || { error_log "ffmpeg failed to process \"$file\""; return; }
 	readonly ASTATS
 
-	# Check if ffmpeg produced expected astats output
+	# Check if ffmpeg produced expected astats output.
 	echo "$ASTATS" | grep --quiet --max-count=1 "Channel:" || { error_log "ffmpeg failed to process \"$file\" correctly"; return; }
 
 	FFPROBE=$(ffprobe -v quiet -print_format json -show_format -show_streams "$file" 2>&1) || { error_log "ffprobe failed to process \"$file\""; return; }
 	readonly FFPROBE
 
-	# Detect number of channels
+	# Detect number of channels.
 	NUM_CHANNELS=$(echo "$ASTATS" | grep -c "Channel: [0-9]")
 	if [[ "$NUM_CHANNELS" -ne 2 ]]; then
 		error_log "\"$file\" is not a stereo file"
 		return
 	fi
 
-	# Run loudnorm and capture the JSON output
+	# Run loudnorm and capture the JSON output.
 	LOUDNORM=$(ffmpeg -hide_banner -i "$file" -af loudnorm=print_format=json -f null - 2>&1 | awk '/^{/,/^}/') || { error_log "ffmpeg failed to run loudnorm on \"$file\""; return; }
 	readonly LOUDNORM
 
-	# Print header and per-channel stats to results file
+	# Print header and per-channel stats to results file.
 	if [[ "$JSON_OUTPUT" = "false" ]]; then
 		echo ""
 		TEXT="Audio Analysis: \"$(basename "$file")\""
@@ -416,6 +483,7 @@ function long_running_task() {
 		echo ""
 	fi
 
+	# Extract metadata if requested and print it in the appropriate format.
 	if [[ "$INCLUDE_METADATA" = "true" ]]; then
 		genre=$(get_metadata_tags "GENRE")
 		artist=$(get_metadata_tags "ARTIST")
@@ -427,6 +495,8 @@ function long_running_task() {
 		bit_rate=$(integerize "$(get_metadata "bit_rate")")
 		bits_per_raw_sample=$(integerize "$(get_metadata "bits_per_raw_sample")")
 
+		# For human-readable output, print the metadata in a nice format. For JSON output,
+		# the metadata will be included in the structured output below.
 		if [[ "$JSON_OUTPUT" = "false" ]]; then
 			echo ""
 			echo "Metadata:"
@@ -442,7 +512,7 @@ function long_running_task() {
 		fi
 	fi
 
-	# Per-channel stats
+	# Gather per-channel stats.
 	left_peak=$(get_stat 1 "Peak level dB")
 	left_noise=$(get_stat 1 "Noise floor dB")
 	left_crest=$(get_stat 1 "Crest factor")
@@ -459,6 +529,7 @@ function long_running_task() {
 	right_rounded_noise=$(printf "%.2f" "$right_noise")
 	right_rounded_crest=$(printf "%.2f" "$right_crest")
 
+	# Print per-channel stats in the appropriate format.
 	if [[ "$JSON_OUTPUT" = "false" ]]; then
 		echo ""
 		echo "Left Channel:"
@@ -473,7 +544,8 @@ function long_running_task() {
 		echo ""
 	fi
 
-	# Stereo correlation
+	# Stereo correlation. The aphasemeter filter outputs a line for each frame with the current phase value,
+	#so we can average those values to get an overall average phase for the file.
 	average_phase=$(ffmpeg -hide_banner -i "$file" -af "aphasemeter=video=0,ametadata=print:file=-" -f null - 2> /dev/null \
 		| grep 'lavfi.aphasemeter.phase' \
 		| awk -F '=' '{ sum+=$2; n++ } END { if (n>0) printf "%.2f", sum/n; else print "n/a" }')
@@ -483,6 +555,7 @@ function long_running_task() {
 		echo "  Average Phase:  $average_phase"
 	fi
 
+	# Gather loudness stats.
 	integrated_loudness=$(get_loudnorm "input_i")
 	true_peak=$(get_loudnorm "input_tp")
 	loudness_range=$(get_loudnorm "input_lra")
@@ -491,6 +564,7 @@ function long_running_task() {
 	rounded_true_peak=$(printf "%.2f" "$true_peak")
 	rounded_loudness_range=$(printf "%.2f" "$loudness_range")
 
+	# Print loudness stats in the appropriate format.
 	if [[ "$JSON_OUTPUT" = "false" ]]; then
 		echo ""
 		echo "Loudness (EBU R128):"
@@ -498,6 +572,7 @@ function long_running_task() {
 		echo "  True Peak:            ${rounded_true_peak:-n/a} dBTP"
 		echo "  Loudness Range:       ${rounded_loudness_range:-n/a} LU"
 	else
+		# For JSON output, print all the collected data in a structured format. The metadata fields will be included if requested.
 		[[ "$row" -eq 1 ]] && echo "[" > "$RESULTS_FILE"
 		echo "{"
 		echo "  \"id\": $row,"
@@ -541,15 +616,7 @@ function long_running_task() {
 } >> "$RESULTS_FILE"
 
 #
-# Create temporary files for error logging and results output, and ensure they are cleaned up on exit
-#
-ERROR_LOG="$(mktemp)"
-readonly ERROR_LOG
-RESULTS_FILE="$(mktemp)"
-readonly RESULTS_FILE
-
-#
-# Build the active extension list
+# Build the active extension list from the default list and the AUDIO_EXTENSIONS environment variable, if set.
 #
 declare -a EXTENSIONS
 AUDIO_EXTENSIONS="${AUDIO_EXTENSIONS:-}"
@@ -562,12 +629,12 @@ if [[ -n "$AUDIO_EXTENSIONS" ]]; then
 		if [[ -n "$cleaned" ]]; then
 			EXTENSIONS+=("$cleaned")
 		else
-			echo "Warning: skipping invalid extension token: '$raw'" >&2
+			error_log "Warning: skipping invalid extension token: '$raw'"
 		fi
 	done
 
 	if [[ ${#EXTENSIONS[@]} -eq 0 ]]; then
-		echo "Warning: AUDIO_EXTENSIONS contained no valid values, using defaults." >&2
+		error_log "Warning: AUDIO_EXTENSIONS contained no valid values, using defaults."
 		EXTENSIONS=("${DEFAULT_EXTENSIONS[@]}")
 	fi
 else
@@ -577,7 +644,7 @@ fi
 readonly EXTENSIONS
 
 #
-# Build a find command dynamically from the array
+# Build a find command that includes all the specified extensions. This will be used to efficiently find audio files in directories.
 #
 find_args=()
 for i in "${!EXTENSIONS[@]}"; do
@@ -586,15 +653,22 @@ for i in "${!EXTENSIONS[@]}"; do
 done
 readonly find_args
 
+#
+# Collect the list of audio files to process. This will populate the AUDIO_FILES array with the
+# resolved file paths based on the provided arguments and options.
+#
 collect_audio_files "${RECURSE_FLAG[@]}" -- "${POSITIONAL[@]}"
 [[ "$QUIET" = "false" ]] && printf "\r\033[K" >&2
-#[[ ${#AUDIO_FILES[@]} -gt $PROCESSING_LIMIT ]] && echo "$THIS_PGM: WARNING: Processing will be limited to $PROCESSING_LIMIT files." >&2
 
+#
+# Warn user if there are more files than the processing limit (if a limit is set).
+#
+[[ $PROCESSING_LIMIT -gt 0 && ${#AUDIO_FILES[@]} -gt $PROCESSING_LIMIT ]] && echo "WARNING: Processing will be limited to $PROCESSING_LIMIT files." >&2
+
+#
+# The main file loop: process each file, run the analysis in the background, and show a spinner while it runs.
+#
 row=1
-
-#
-# Loop through all the files
-#
 for file in "${AUDIO_FILES[@]}"; do
 	[[ -e "$file" ]] || { error_log "File \"$file\" does not exist"; continue; }
 	[[ -f "$file" ]] || { error_log "File \"$file\" is not a regular file"; continue; }
@@ -607,13 +681,13 @@ for file in "${AUDIO_FILES[@]}"; do
 	[[ "$QUIET" = "false" ]] && spinner $TASK_PID "Processing file $row of ${#AUDIO_FILES[@]}: \"$(basename "$file")\""
 	wait $TASK_PID
 	row=$((row + 1))
-	#if [[ "$row" -gt $PROCESSING_LIMIT ]]; then
-	#	break
-	#fi
+	if [[ "$PROCESSING_LIMIT" -gt 0 && "$row" -gt $PROCESSING_LIMIT ]]; then
+		break
+	fi
 done
 
 #
-# Finalize JSON output if needed, and display results or errors
+# Finalize JSON output by removing trailing comma and closing the array.
 #
 if [[ "$JSON_OUTPUT" = "false" ]]; then
 	echo "" >> "$RESULTS_FILE"
@@ -623,18 +697,22 @@ else
 fi
 
 #
-# Display results
+# Display results.
 #
 if [[ -s "$RESULTS_FILE" ]]; then
 	cat "$RESULTS_FILE"
 else
-	error_log "No results to display"
+	[[ "$QUIET" = "false" ]] && error_log "No results to display"
 fi
 
 #
-# Display any warnings about processing limits and show error log if present
+# Display any warnings about processing limits and show error log if present.
 #
-#[[ "$row" -gt $PROCESSING_LIMIT ]] && echo "WARNING: Processing was limited to $PROCESSING_LIMIT files." >&2
+[[ $PROCESSING_LIMIT -gt 0 && "$row" -gt $PROCESSING_LIMIT ]] && error_log "WARNING: Processing was limited to $PROCESSING_LIMIT files."
+
+#
+# If there were any errors logged, display the unique set of error messages to stderr.
+#
 [[ -s "$ERROR_LOG" ]] && sort --unique "$ERROR_LOG" >&2
 
 #
@@ -644,6 +722,6 @@ rm --force "$RESULTS_FILE" 2> /dev/null
 rm --force "$ERROR_LOG" 2> /dev/null
 
 #
-# Check for updates after processing is done, so it doesn't interfere with the main task
+# Check for updates if not in quiet mode.
 #
-check_for_update
+[[ "$QUIET" = "false" ]] && check_for_update
