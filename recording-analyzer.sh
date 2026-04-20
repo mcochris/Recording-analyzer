@@ -149,19 +149,19 @@ function parse_extension() {
 # Check for updates by fetching the latest version string from the GitHub repository
 #
 check_for_update() {
-  local remote
-  remote=$(curl --silent --fail --max-time 3 \
-    "https://api.github.com/repos/mcochris/Recording-analyzer/releases/latest" \
-    | grep '"tag_name":' | head -1 | cut -d'"' -f4) || return 0
+	local remote
+	remote=$(curl --silent --fail --max-time 3 \
+		"https://api.github.com/repos/mcochris/Recording-analyzer/releases/latest" \
+		| grep '"tag_name":' | head -1 | cut -d'"' -f4) || return 0
 
-  if [[ -z "$remote" ]]; then
-    return 0 # Silently skip if fetch fails
-  fi
+	if [[ -z "$remote" ]]; then
+		return 0 # Silently skip if fetch fails
+	fi
 
-  if [[ "$remote" != "$VERSION" ]]; then
-    echo "Update available: v$remote (you have v$VERSION)"
-    echo "Update: curl --remote-name https://raw.githubusercontent.com/mcochris/Recording-analyzer/main/recording-analyzer.sh"
-  fi
+	if [[ "$remote" != "$VERSION" ]]; then
+		echo "Update available: v$remote (you have v$VERSION)"
+		echo "Update: curl --remote-name https://raw.githubusercontent.com/mcochris/Recording-analyzer/main/recording-analyzer.sh"
+  	fi
 }
 
 # Helper: add a single file if it matches an audio extension
