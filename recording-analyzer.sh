@@ -150,12 +150,12 @@ function parse_extension() {
 #
 check_for_update() {
   local remote
-  remote=$(curl -sf --max-time 3 \
+  remote=$(curl --silent --fail --max-time 3 \
     "https://api.github.com/repos/mcochris/Recording-analyzer/releases/latest" \
-    | grep '"tag_name":' | head -1 | cut -d'"' -f4) || return
+    | grep '"tag_name":' | head -1 | cut -d'"' -f4) || return 0
 
   if [[ -z "$remote" ]]; then
-    return  # Silently skip if fetch fails
+    return 0 # Silently skip if fetch fails
   fi
 
   if [[ "$remote" != "$VERSION" ]]; then
