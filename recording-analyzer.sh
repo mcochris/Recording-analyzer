@@ -72,6 +72,9 @@ Options:
 	# page at https://recording-analyzer.mcochris.com/
 	$THIS_PGM --json --metadata ~/Music/*.flac > analysis_results.json
 
+	For more details and troubleshooting, please visit the GitHub repository:
+	https://github.com/mcochris/Recording-analyzer
+
 	Questions, issues, suggestions? Please open a support ticket at:
 	https://github.com/mcochris/Recording-analyzer/issues
 "
@@ -149,19 +152,29 @@ function parse_extension() {
 # Check for updates by fetching the latest version string from the GitHub repository
 #
 check_for_update() {
+	tput civis 1>&2
+	printf "\rChecking for updates..." 1>&2
 	local remote
+
 	remote=$(curl --silent --fail --max-time 3 \
 		"https://api.github.com/repos/mcochris/Recording-analyzer/releases/latest" \
-		| grep '"tag_name":' | head -1 | cut -d'"' -f4) || return 0
+		| grep '"tag_name":' | head -1 | cut -d'"' -f4) || \
+		{ printf "\r%s\033[K\n" "Checking for updates failed" 1>&2; tput cnorm 1>&2; return 0; }
 
 	if [[ -z "$remote" ]]; then
-		return 0 # Silently skip if fetch fails
+		printf "\r%s\033[K\n" "Checking for updates failed" 1>&2;
+		tput cnorm 1>&2
+		return 0
 	fi
 
 	if [[ "$remote" != "$VERSION" ]]; then
-		echo "Update available: v$remote (you have v$VERSION)"
-		echo "Update: curl --remote-name https://raw.githubusercontent.com/mcochris/Recording-analyzer/main/recording-analyzer.sh"
+		printf "\r%s\033[K\n" "Update available: v$remote (you have v$VERSION)" 1>&2
+		echo "Update: curl --remote-name https://raw.githubusercontent.com/mcochris/Recording-analyzer/main/recording-analyzer.sh" 1>&2
+	else
+		printf "\r%s\033[K\n" "You are using the latest version (v$VERSION)" 1>&2
   	fi
+
+	tput cnorm 1>&2
 }
 
 # Helper: add a single file if it matches an audio extension
