@@ -221,6 +221,24 @@ average loudness (integrated loudness) is typically targeted at -14 to -16
 LUFS for streaming, LRA ensures audio isn't too static or too erratic, with
 a preferred range of 5–10 LU for consistency.
 
+## ☁️ Environment variables
+
+There are two environment variables you can set to control how recording-analyzer works:
+
+- PROCESSING_LIMIT sets the maximum number of files to process.
+For example, if you set PROCESSING_LIMIT to 10, recording-analyzer.sh will process up to 10 files.
+The default is no limit.
+- AUDIO_EXTENSIONS sets the file extensions you want to process. For example, if you set AUDIO_EXTENSIONS
+to "mp3 wav" then recording-analyzer.sh will only process .mp3 and .wav files. The default is
+"aac ac3 aif aiff amr caf flac m4a mp3 ogg opus pcm wav wma".
+
+Set these environment variables like this:
+
+```bash
+export PROCESSING_LIMIT 100
+export AUDIO_EXTENSIONS "flac aac m4a wav"
+```
+
 ## 🔬 Validation
 
 You can verify the recording-analyzers' output against programs other than ffmpeg for comparison. See methodology and verification details here:
