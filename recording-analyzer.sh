@@ -49,7 +49,7 @@ function cleanup() {
 # Function to log errors to a file.
 #
 function error_log() {
-	echo "ERROR: $1" >> "$ERROR_LOG"
+	echo "$1" >> "$ERROR_LOG"
 }
 
 #
@@ -130,8 +130,9 @@ Options:
 
 #
 # Optional processing limit to prevent overloading the system with too many files.
+# Can be set via PROCESSING_LIMIT environment variable, default is 0 for no limit.
 #
-readonly PROCESSING_LIMIT=0  # Set to 0 for no limit.
+readonly DEFAULT_PROCESSING_LIMIT=0
 
 #
 # Default audio file extensions to look for (can be overridden by AUDIO_EXTENSIONS env var).
@@ -184,7 +185,7 @@ while [[ $# -gt 0 ]]; do
 			;;
 		*)
 			if [[ "$1" == -* ]]; then
-				error_log "Warning: ignoring unknown option '$1'" >&2
+				error_log "Warning: ignoring unknown option '$1'"
 			else
 				POSITIONAL+=("$1")
 			fi
@@ -213,30 +214,43 @@ function parse_extension() {
 
 #
 # Check for updates by fetching the latest version string from the GitHub repository.
-# This function is not called if QUIET is true.
 #
 check_for_update() {
-	tput civis 1>&2
-	printf "\rChecking for updates..." 1>&2
+	if [[ "$QUIET" = "false" ]]; then
+		tput civis 1>&2
+		printf "\rChecking for updates..." 1>&2
+	fi
+
 	local remote
 
 	remote=$(curl --silent --fail --max-time 3 \
 		"https://api.github.com/repos/mcochris/Recording-analyzer/releases/latest" \
 		| grep '"tag_name":' | head -1 | cut -d'"' -f4) || \
-		{ printf "\r%s\033[K\n" "Checking for updates failed" 1>&2; tput cnorm 1>&2; return 0; }
+		{	if [[ "$QUIET" = "false" ]]; then
+				printf "\r%s\033[K\n" "Checking for updates failed" 1>&2
+				tput cnorm 1>&2
+			fi
+			return 1
+		}
 
 	if [[ -z "$remote" ]]; then
-		printf "\r%s\033[K\n" "Checking for updates failed" 1>&2;
-		tput cnorm 1>&2
-		return 0
+		if [[ "$QUIET" = "false" ]]; then
+			printf "\r%s\033[K\n" "Checking for updates failed" 1>&2
+			tput cnorm 1>&2
+		fi
+		return 2
 	fi
 
 	if [[ "$remote" != "$VERSION" ]]; then
-		printf "\r%s\033[K\n" "Update available: v$remote (you have v$VERSION)" 1>&2
-		echo "Update: curl --remote-name https://raw.githubusercontent.com/mcochris/Recording-analyzer/main/recording-analyzer.sh" 1>&2
+		if [[ "$QUIET" = "false" ]]; then
+			printf "\r%s\033[K\n" "Update available: v$remote (you have v$VERSION)" 1>&2
+			echo "Update: curl --remote-name https://raw.githubusercontent.com/mcochris/Recording-analyzer/main/recording-analyzer.sh" 1>&2
+		fi
+		return 3
   	fi
 
 	tput cnorm 1>&2
+	return 0
 }
 
 #
@@ -247,7 +261,9 @@ function add_if_audio() {
 	if [[ -f "$f" ]] && [[ "${f,,}" =~ $ext_pattern ]]; then
 		AUDIO_FILES+=("$f")
 		msg="Scanning... found ${#AUDIO_FILES[@]} file(s)"
-		[[ "$QUIET" = "false" ]] && printf "\r%s\033[K" "${msg:0:$COLS}" >&2
+		if [[ "$QUIET" = "false" ]]; then
+			printf "\r%s\033[K" "${msg:0:$COLS}" 1>&2
+		fi
 	fi
 }
 
@@ -454,24 +470,24 @@ function integerize() {
 #
 function long_running_task() {
 	# Run ffmpeg with astats filter to get per-channel statistics.
-	ASTATS=$(ffmpeg -hide_banner -i "$file" -af "astats" -f null - 2>&1) || { error_log "ffmpeg failed to process \"$file\""; return; }
+	ASTATS=$(ffmpeg -hide_banner -i "$file" -af "astats" -f null - 2>&1) || { error_log "ERROR: ffmpeg failed to process \"$file\""; return; }
 	readonly ASTATS
 
 	# Check if ffmpeg produced expected astats output.
-	echo "$ASTATS" | grep --quiet --max-count=1 "Channel:" || { error_log "ffmpeg failed to process \"$file\" correctly"; return; }
+	echo "$ASTATS" | grep --quiet --max-count=1 "Channel:" || { error_log "ERROR: ffmpeg failed to process \"$file\" correctly"; return; }
 
-	FFPROBE=$(ffprobe -v quiet -print_format json -show_format -show_streams "$file" 2>&1) || { error_log "ffprobe failed to process \"$file\""; return; }
+	FFPROBE=$(ffprobe -v quiet -print_format json -show_format -show_streams "$file" 2>&1) || { error_log "ERROR: ffprobe failed to process \"$file\""; return; }
 	readonly FFPROBE
 
 	# Detect number of channels.
 	NUM_CHANNELS=$(echo "$ASTATS" | grep -c "Channel: [0-9]")
 	if [[ "$NUM_CHANNELS" -ne 2 ]]; then
-		error_log "\"$file\" is not a stereo file"
+		error_log "ERROR: \"$file\" is not a stereo file"
 		return
 	fi
 
 	# Run loudnorm and capture the JSON output.
-	LOUDNORM=$(ffmpeg -hide_banner -i "$file" -af loudnorm=print_format=json -f null - 2>&1 | awk '/^{/,/^}/') || { error_log "ffmpeg failed to run loudnorm on \"$file\""; return; }
+	LOUDNORM=$(ffmpeg -hide_banner -i "$file" -af loudnorm=print_format=json -f null - 2>&1 | awk '/^{/,/^}/') || { error_log "ERROR: ffmpeg failed to run loudnorm on \"$file\""; return; }
 	readonly LOUDNORM
 
 	# Print header and per-channel stats to results file.
@@ -616,6 +632,18 @@ function long_running_task() {
 } >> "$RESULTS_FILE"
 
 #
+# Validate the PROCESSING_LIMIT environment variable if set, otherwise use the default.
+#
+PROCESSING_LIMIT="${PROCESSING_LIMIT:-$DEFAULT_PROCESSING_LIMIT}"
+if [[ "$PROCESSING_LIMIT" != "0" ]]; then
+	if ! [[ "$PROCESSING_LIMIT" =~ ^[1-9][0-9]*$ ]]; then
+		error_log "Warning: Invalid PROCESSING_LIMIT value '$PROCESSING_LIMIT', using default of $DEFAULT_PROCESSING_LIMIT"
+		PROCESSING_LIMIT=$DEFAULT_PROCESSING_LIMIT
+	fi
+fi
+readonly PROCESSING_LIMIT
+
+#
 # Build the active extension list from the default list and the AUDIO_EXTENSIONS environment variable, if set.
 #
 declare -a EXTENSIONS
@@ -658,27 +686,33 @@ readonly find_args
 # resolved file paths based on the provided arguments and options.
 #
 collect_audio_files "${RECURSE_FLAG[@]}" -- "${POSITIONAL[@]}"
-[[ "$QUIET" = "false" ]] && printf "\r\033[K" >&2
+[[ "$QUIET" = "false" ]] && printf "\r\033[K" 1>&2
 
 #
 # Warn user if there are more files than the processing limit (if a limit is set).
 #
-[[ $PROCESSING_LIMIT -gt 0 && ${#AUDIO_FILES[@]} -gt $PROCESSING_LIMIT ]] && echo "WARNING: Processing will be limited to $PROCESSING_LIMIT files." >&2
+[[ "$QUIET" = "false" && "$PROCESSING_LIMIT" -gt 0 && ${#AUDIO_FILES[@]} -gt $PROCESSING_LIMIT ]] && echo "Warning: Processing will be limited to $PROCESSING_LIMIT files." >&2
 
 #
 # The main file loop: process each file, run the analysis in the background, and show a spinner while it runs.
 #
 row=1
+if [[ $PROCESSING_LIMIT -gt 0 && ${#AUDIO_FILES[@]} -gt $PROCESSING_LIMIT ]]; then
+	limit=$PROCESSING_LIMIT
+else
+	limit=${#AUDIO_FILES[@]}
+fi
+
 for file in "${AUDIO_FILES[@]}"; do
-	[[ -e "$file" ]] || { error_log "File \"$file\" does not exist"; continue; }
-	[[ -f "$file" ]] || { error_log "File \"$file\" is not a regular file"; continue; }
-	[[ -r "$file" ]] || { error_log "File \"$file\" is not readable"; continue; }
-	[[ -s "$file" ]] || { error_log "File \"$file\" is empty"; continue; }
+	[[ -e "$file" ]] || { error_log "ERROR: File \"$file\" does not exist"; continue; }
+	[[ -f "$file" ]] || { error_log "ERROR: File \"$file\" is not a regular file"; continue; }
+	[[ -r "$file" ]] || { error_log "ERROR: File \"$file\" is not readable"; continue; }
+	[[ -s "$file" ]] || { error_log "ERROR: File \"$file\" is empty"; continue; }
 
 	# Run task in background, capture PID, and show spinner while it runs
 	long_running_task &
 	TASK_PID=$!
-	[[ "$QUIET" = "false" ]] && spinner $TASK_PID "Processing file $row of ${#AUDIO_FILES[@]}: \"$(basename "$file")\""
+	[[ "$QUIET" = "false" ]] && spinner $TASK_PID "Processing file $row of $limit: \"$(basename "$file")\""
 	wait $TASK_PID
 	row=$((row + 1))
 	if [[ "$PROCESSING_LIMIT" -gt 0 && "$row" -gt $PROCESSING_LIMIT ]]; then
@@ -702,13 +736,13 @@ fi
 if [[ -s "$RESULTS_FILE" ]]; then
 	cat "$RESULTS_FILE"
 else
-	[[ "$QUIET" = "false" ]] && error_log "No results to display"
+	error_log "ERROR: No results to display"
 fi
 
 #
 # Display any warnings about processing limits and show error log if present.
 #
-[[ $PROCESSING_LIMIT -gt 0 && "$row" -gt $PROCESSING_LIMIT ]] && error_log "WARNING: Processing was limited to $PROCESSING_LIMIT files."
+[[ $PROCESSING_LIMIT -gt 0 && "$row" -gt $PROCESSING_LIMIT ]] && error_log "Warning: Processing was limited to $PROCESSING_LIMIT files."
 
 #
 # If there were any errors logged, display the unique set of error messages to stderr.
@@ -724,4 +758,4 @@ rm --force "$ERROR_LOG" 2> /dev/null
 #
 # Check for updates if not in quiet mode.
 #
-[[ "$QUIET" = "false" ]] && check_for_update
+check_for_update
