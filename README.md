@@ -235,8 +235,15 @@ to "mp3 wav" then recording-analyzer.sh will only process .mp3 and .wav files. T
 Set these environment variables like this:
 
 ```bash
-export PROCESSING_LIMIT 100
-export AUDIO_EXTENSIONS "flac aac m4a wav"
+export PROCESSING_LIMIT=100
+export AUDIO_EXTENSIONS="flac aac m4a wav"
+```
+
+To unset these variables:
+
+```bash
+export PROCESSING_LIMIT
+export AUDIO_EXTENSIONS
 ```
 
 ## 🔬 Validation
