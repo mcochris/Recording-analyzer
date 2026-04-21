@@ -42,7 +42,7 @@ readonly RESULTS_FILE
 function cleanup() {
 	[[ -n "${RESULTS_FILE:-}" ]] && rm --force "$RESULTS_FILE" 2> /dev/null
 	[[ -n "${ERROR_LOG:-}" ]] && rm --force "$ERROR_LOG" 2> /dev/null
-	tput cnorm
+	tput cnorm 1>&2
 }
 
 #
@@ -55,8 +55,8 @@ function error_log() {
 #
 # Set traps for signals to ensure cleanup is performed.
 #
-trap 'echo "Aborted."; tput cnorm; exit 130' SIGINT
-trap 'echo "Terminated."; tput cnorm; exit 143' SIGTERM
+trap 'echo "Aborted."; tput cnorm 1>&2; exit 130' SIGINT
+trap 'echo "Terminated."; tput cnorm 1>&2; exit 143' SIGTERM
 trap cleanup EXIT
 
 #
@@ -216,7 +216,7 @@ function parse_extension() {
 # Check for updates by fetching the latest version string from the GitHub repository.
 #
 check_for_update() {
-	tput civis
+	tput civis 1>&2
 	local remote
 
 	remote=$(curl --silent --fail --max-time 3 \
@@ -224,7 +224,7 @@ check_for_update() {
 		| grep '"tag_name":' | head -1 | cut -d'"' -f4) || \
 		{	if [[ "$QUIET" = "false" ]]; then
 				printf "\r%s\033[K\n" "Checking for updates failed" 1>&2
-				tput cnorm
+				tput cnorm 1>&2
 			fi
 			return 1
 		}
@@ -232,7 +232,7 @@ check_for_update() {
 	if [[ -z "$remote" ]]; then
 		if [[ "$QUIET" = "false" ]]; then
 			printf "\r%s\033[K\n" "Checking for updates failed" 1>&2
-			tput cnorm
+			tput cnorm 1>&2
 		fi
 		return 2
 	fi
@@ -245,7 +245,7 @@ check_for_update() {
 		return 3
   	fi
 
-	tput cnorm
+	tput cnorm 1>&2
 	return 0
 }
 
@@ -354,7 +354,7 @@ function collect_audio_files() {
 	local frames=('-' '\' '|' '/')
 	local i=0
 	local j=1
-	tput civis
+	tput civis 1>&2
 
 	# Use realpath to resolve symlinks and get a canonical path for each file, then use an associative array to track seen paths.
 	# This way we can avoid processing the same file multiple times if it appears in multiple locations.
@@ -375,7 +375,7 @@ function collect_audio_files() {
 
 	# Clear the spinner line and restore cursor.
 	printf "\r\033[K" 1>&2
-	tput cnorm
+	tput cnorm 1>&2
 
 	AUDIO_FILES=("${unique[@]}")
 }
@@ -391,7 +391,7 @@ function spinner() {
 	local i=0
 
 	# Hide cursor
-	tput civis
+	tput civis 1>&2
 
 	while kill -0 "$pid" 2>/dev/null; do
 		printf "\r%s... %s" "${message:0:$((COLS-5))}" "${frames[$i]}" 1>&2
@@ -401,7 +401,7 @@ function spinner() {
 
 	# Clear the spinner line and restore cursor
 	printf "\r\033[K" 1>&2
-	tput cnorm
+	tput cnorm 1>&2
 }
 
 #
