@@ -242,8 +242,8 @@ export AUDIO_EXTENSIONS="flac aac m4a wav"
 To unset these variables:
 
 ```bash
-export PROCESSING_LIMIT
-export AUDIO_EXTENSIONS
+unset PROCESSING_LIMIT
+unset AUDIO_EXTENSIONS
 ```
 
 ## 🔬 Validation
