@@ -26,7 +26,7 @@ set -o errtrace
 #
 # Program version is automatically updated by GitHub Actions on new releases.
 #
-readonly VERSION="v1.0.0"
+readonly VERSION="1.0.1"
 
 #
 # Create temporary files for error logging and results output.
@@ -237,7 +237,7 @@ check_for_update() {
 		return 2
 	fi
 
-	if [[ "$remote" != "$VERSION" ]]; then
+	if [[ "${remote#v}" != "${VERSION#v}" ]]; then
 		if [[ "$QUIET" = "false" ]]; then
 			printf "\r%s\033[K\n" "Update available: $remote (you have $VERSION)" 1>&2
 			echo "Update: curl --remote-name https://raw.githubusercontent.com/mcochris/Recording-analyzer/main/recording-analyzer.sh" 1>&2
