@@ -9,8 +9,8 @@
 # │             For more details, please visit the GitHub repository:            │
 # │	               https://github.com/mcochris/Recording-analyzer                │
 # │                                                                              │
-# │        Questions, issues, suggestions? Please open a support ticket at:      │
-# │             https://github.com/mcochris/Recording-analyzer/issues            │
+# │       Questions, issues, suggestions? Please open a support ticket at:       │
+# │            https://github.com/mcochris/Recording-analyzer/issues             │
 # │                                                                              │
 # ╰──────────────────────────────────────────────────────────────────────────────╯
 
