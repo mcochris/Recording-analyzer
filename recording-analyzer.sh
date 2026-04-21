@@ -216,11 +216,7 @@ function parse_extension() {
 # Check for updates by fetching the latest version string from the GitHub repository.
 #
 check_for_update() {
-	if [[ "$QUIET" = "false" ]]; then
-		tput civis 1>&2
-		printf "\rChecking for updates..." 1>&2
-	fi
-
+	tput civis 1>&2
 	local remote
 
 	remote=$(curl --silent --fail --max-time 3 \
@@ -243,7 +239,7 @@ check_for_update() {
 
 	if [[ "$remote" != "$VERSION" ]]; then
 		if [[ "$QUIET" = "false" ]]; then
-			printf "\r%s\033[K\n" "Update available: v$remote (you have v$VERSION)" 1>&2
+			printf "\r%s\033[K\n" "Update available: $remote (you have $VERSION)" 1>&2
 			echo "Update: curl --remote-name https://raw.githubusercontent.com/mcochris/Recording-analyzer/main/recording-analyzer.sh" 1>&2
 		fi
 		return 3
