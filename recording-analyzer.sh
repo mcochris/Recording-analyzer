@@ -29,6 +29,19 @@ set -o errtrace
 readonly VERSION="1.0.1"
 
 #
+# Check for minimum Bash version (4.1 or greater) since we rely on associative arrays and other features not available in older versions.
+#
+if [ -z "$BASH_VERSION" ]; then
+    echo 'Cannot detect Bash version. Are you running this with Bash?' >&2
+    exit 1
+fi
+if [ "${BASH_VERSINFO[0]}" -lt 4 ] || [ "${BASH_VERSINFO[0]}" -eq 4 ] && [ "${BASH_VERSINFO[1]}" -lt 1 ]; then
+    echo 'Bash version 4.1 or greater is required for this script.' >&2
+    echo "You appear to be running version $BASH_VERSION." >&2
+    exit 1
+fi
+
+#
 # Create temporary files for error logging and results output.
 #
 ERROR_LOG="$(mktemp)"
@@ -226,7 +239,7 @@ check_for_update() {
 				printf "\r%s\033[K\n" "Checking for updates failed" 1>&2
 				tput cnorm 1>&2
 			fi
-			return 1
+			return 10
 		}
 
 	if [[ -z "$remote" ]]; then
@@ -234,7 +247,7 @@ check_for_update() {
 			printf "\r%s\033[K\n" "Checking for updates failed" 1>&2
 			tput cnorm 1>&2
 		fi
-		return 2
+		return 11
 	fi
 
 	if [[ "${remote#v}" != "${VERSION#v}" ]]; then
@@ -242,7 +255,7 @@ check_for_update() {
 			printf "\r%s\033[K\n" "Update available: $remote (you have $VERSION)" 1>&2
 			echo "Update: curl --remote-name https://raw.githubusercontent.com/mcochris/Recording-analyzer/main/recording-analyzer.sh" 1>&2
 		fi
-		return 3
+		return 12
   	fi
 
 	tput cnorm 1>&2
@@ -254,6 +267,7 @@ check_for_update() {
 #
 function add_if_audio() {
 	local f="$1"
+	[[ $PROCESSING_LIMIT -gt 0 && ${#AUDIO_FILES[@]} -ge $PROCESSING_LIMIT ]] && return
 	if [[ -f "$f" ]] && [[ "${f,,}" =~ $ext_pattern ]]; then
 		AUDIO_FILES+=("$f")
 		msg="Scanning... found ${#AUDIO_FILES[@]} file(s)"
@@ -311,7 +325,6 @@ function collect_audio_files() {
 	for arg in "${args[@]}"; do
 		# Expand ~ manually since it won't expand inside a variable.
 		arg="${arg/#\~/$HOME}"
-
 		if [[ -d "$arg" ]]; then
 			# Argument is a directory.
 			if "$recurse"; then
@@ -319,11 +332,9 @@ function collect_audio_files() {
 			else
 				add_dir_flat "$arg"
 			fi
-
 		elif [[ -f "$arg" ]]; then
 			# Argument is a literal existing file.
 			add_if_audio "$arg"
-
 		else
 			# Got a glob pattern?
 			local match
@@ -683,11 +694,6 @@ readonly find_args
 #
 collect_audio_files "${RECURSE_FLAG[@]}" -- "${POSITIONAL[@]}"
 [[ "$QUIET" = "false" ]] && printf "\r\033[K" 1>&2
-
-#
-# Warn user if there are more files than the processing limit (if a limit is set).
-#
-[[ "$QUIET" = "false" && "$PROCESSING_LIMIT" -gt 0 && ${#AUDIO_FILES[@]} -gt $PROCESSING_LIMIT ]] && echo "Warning: Processing will be limited to $PROCESSING_LIMIT files." >&2
 
 #
 # The main file loop: process each file, run the analysis in the background, and show a spinner while it runs.
