@@ -26,7 +26,7 @@ set -o errtrace
 #
 # Program version is automatically updated by GitHub Actions on new releases.
 #
-readonly VERSION="1.0.2"
+readonly VERSION="v1.0.2"
 
 #
 # Check for minimum Bash version (4.1 or greater) since we rely on associative arrays and other features not available in older versions.
