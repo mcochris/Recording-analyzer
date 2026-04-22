@@ -267,13 +267,14 @@ check_for_update() {
 #
 function add_if_audio() {
 	local f="$1"
+	local ext_pattern="$2"
 	[[ $PROCESSING_LIMIT -gt 0 && ${#AUDIO_FILES[@]} -ge $PROCESSING_LIMIT ]] && return
 	if [[ -f "$f" ]] && [[ "${f,,}" =~ $ext_pattern ]]; then
 		AUDIO_FILES+=("$f")
+	fi
+	if [[ "$QUIET" = "false" ]]; then
 		msg="Scanning... found ${#AUDIO_FILES[@]} file(s)"
-		if [[ "$QUIET" = "false" ]]; then
-			printf "\r%s\033[K" "${msg:0:$COLS}" 1>&2
-		fi
+		printf "\r%s\033[K" "${msg:0:$COLS}" 1>&2
 	fi
 }
 
@@ -282,9 +283,10 @@ function add_if_audio() {
 #
 function add_dir_flat() {
 	local dir="$1"
+	local ext_pattern="$2"
 	local f
 	while IFS= read -r -d '' f; do
-		add_if_audio "$f"
+		add_if_audio "$f" "$ext_pattern"
 	done < <(find "$dir" -maxdepth 1 -type f -a \( "${find_args[@]}" \) -print0)
 }
 
@@ -293,10 +295,26 @@ function add_dir_flat() {
 #
 function add_dir_recursive() {
 	local dir="$1"
+	local ext_pattern="$2"
 	local f
 	while IFS= read -r -d '' f; do
-		add_if_audio "$f"
+		add_if_audio "$f" "$ext_pattern"
 	done < <(find "$dir" -type f -a \( "${find_args[@]}" \) -print0)
+}
+
+#
+# Extract the lowercase extension from a file path (e.g. "/path/to/track.WAV" -> "wav").
+# Returns an empty string if the filename has no extension.
+#
+function get_file_extension() {
+	local base ext
+	base="${1##*/}"          # strip directory
+	ext="${base##*.}"        # strip everything up to the last dot
+	if [[ "$ext" == "$base" ]]; then
+		echo ""              # no dot found — no extension
+	else
+		echo "${ext,,}"      # lowercase
+	fi
 }
 
 #
@@ -320,6 +338,43 @@ function collect_audio_files() {
 	ext_pattern=$(printf '%s|' "${EXTENSIONS[@]}")
 	ext_pattern="\\.(${ext_pattern%|})$"
 
+	# Track (parent_dir:ext) pairs already recursed to avoid redundant scans.
+	# Using the extension as part of the key lets us recurse the same directory
+	# multiple times when different extensions are requested (e.g. a.wav + b.flac
+	# in the same folder), while still deduplicating identical requests.
+	local -A recursed_dirs=()
+
+	# Build an extension-specific find pattern for use when the caller's glob
+	# (e.g. ~/Music/*.wav) has already been expanded by the shell into individual
+	# files. If the file has a recognised extension, return a pattern that matches
+	# only that extension; otherwise fall back to the full ext_pattern.
+	make_single_ext_pattern() {
+		local f="$1"
+		local ext
+		ext="$(get_file_extension "$f")"
+		if [[ -n "$ext" ]]; then
+			echo "\\.(${ext})$"
+		else
+			echo "$ext_pattern"
+		fi
+	}
+
+	# Recurse a file's parent directory using an extension-specific pattern.
+	# Deduplicates on (resolved_parent_dir:ext) so the same scan is never run twice.
+	recurse_parent_of_file() {
+		local f="$1"
+		local pattern="$2"
+		local parent
+		parent="$(realpath --no-symlinks "$(dirname "$f")" 2>/dev/null || dirname "$f")"
+		local ext
+		ext="$(get_file_extension "$f")"
+		local dedup_key="${parent}:${ext}"
+		if [[ -z "${recursed_dirs[$dedup_key]+_}" ]]; then
+			recursed_dirs[$dedup_key]=1
+			add_dir_recursive "$parent" "$pattern"
+		fi
+	}
+
 	# Process each positional argument
 	local arg
 	for arg in "${args[@]}"; do
@@ -328,13 +383,23 @@ function collect_audio_files() {
 		if [[ -d "$arg" ]]; then
 			# Argument is a directory.
 			if "$recurse"; then
-				add_dir_recursive "$arg"
+				add_dir_recursive "$arg" "$ext_pattern"
 			else
-				add_dir_flat "$arg"
+				add_dir_flat "$arg" "$ext_pattern"
 			fi
 		elif [[ -f "$arg" ]]; then
-			# Argument is a literal existing file.
-			add_if_audio "$arg"
+			# Argument is a literal existing file (or a shell-expanded glob entry).
+			if "$recurse"; then
+				# The shell may have pre-expanded a glob like ~/Music/*.wav into
+				# individual files, so we never received a directory to recurse into.
+				# Recurse the file's parent directory, filtered to just this file's
+				# extension so that e.g. *.wav doesn't also return .flac files.
+				local single_ext_pattern
+				single_ext_pattern="$(make_single_ext_pattern "$arg")"
+				recurse_parent_of_file "$arg" "$single_ext_pattern"
+			else
+				add_if_audio "$arg" "$ext_pattern"
+			fi
 		else
 			# Got a glob pattern?
 			local match
@@ -343,12 +408,19 @@ function collect_audio_files() {
 				match_count=$((match_count + 1))
 				if [[ -d "$match" ]]; then
 					if "$recurse"; then
-						add_dir_recursive "$match"
+						add_dir_recursive "$match" "$ext_pattern"
 					else
-						add_dir_flat "$match"
+						add_dir_flat "$match" "$ext_pattern"
 					fi
 				else
-					add_if_audio "$match"
+					if "$recurse"; then
+						# Same extension-aware parent-dir recursion as the -f branch above.
+						local single_ext_pattern
+						single_ext_pattern="$(make_single_ext_pattern "$match")"
+						recurse_parent_of_file "$match" "$single_ext_pattern"
+					else
+						add_if_audio "$match" "$ext_pattern"
+					fi
 				fi
 			done < <(compgen -G "$arg" 2>/dev/null)
 
