@@ -346,7 +346,7 @@ function collect_audio_files() {
 
 	# Build an extension-specific find pattern for use when the caller's glob
 	# (e.g. ~/Music/*.wav) has already been expanded by the shell into individual
-	# files. If the file has a recognised extension, return a pattern that matches
+	# files. If the file has a recognized extension, return a pattern that matches
 	# only that extension; otherwise fall back to the full ext_pattern.
 	make_single_ext_pattern() {
 		local f="$1"
@@ -444,7 +444,7 @@ function collect_audio_files() {
 	local -A seen_map
 	for f in "${AUDIO_FILES[@]}"; do
 		local real
-		real=$(realpath --no-symlinks "$f" 2>/dev/null || echo "$f")
+		real=$(realpath "$f" 2>/dev/null || echo "$f")
 		if [[ -z "${seen_map[$real]+_}" ]]; then
 			seen_map[$real]=1
 			unique+=("$f")
