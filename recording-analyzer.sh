@@ -68,8 +68,8 @@ function error_log() {
 #
 # Set traps for signals to ensure cleanup is performed.
 #
-trap 'echo "Aborted."; tput cnorm 1>&2; exit 130' SIGINT
-trap 'echo "Terminated."; tput cnorm 1>&2; exit 143' SIGTERM
+trap 'echo "Aborted."; cleanup; exit 130' SIGINT
+trap 'echo "Terminated."; cleanup; exit 143' SIGTERM
 trap cleanup EXIT
 
 #
@@ -461,12 +461,12 @@ function get_metadata_tags() {
 #	Helper function to convert a value to an integer if it's a valid number, otherwise return empty string.
 #
 function integerize() {
-	local value="$1"
-	if [[ "$value" =~ ^[0-9]+$ ]]; then
-		echo $((10#$value))  # 10# forces base-10, stripping leading zeros
-	else
-		echo ""
-	fi
+    local value="$1"
+    if [[ "$value" =~ ^-?[0-9]+(\.[0-9]+)?$ ]]; then
+        printf "%.0f" "$value"
+    else
+        echo ""
+    fi
 }
 
 #
@@ -568,7 +568,7 @@ function long_running_task() {
 	fi
 
 	# Stereo correlation. The aphasemeter filter outputs a line for each frame with the current phase value,
-	#so we can average those values to get an overall average phase for the file.
+	# so we can average those values to get an overall average phase for the file.
 	average_phase=$(ffmpeg -hide_banner -i "$file" -af "aphasemeter=video=0,ametadata=print:file=-" -f null - 2> /dev/null \
 		| grep 'lavfi.aphasemeter.phase' \
 		| awk -F '=' '{ sum+=$2; n++ } END { if (n>0) printf "%.2f", sum/n; else print "n/a" }')
@@ -612,7 +612,12 @@ function long_running_task() {
 			echo "  \"bit_rate\": ${bit_rate:-\"n/a\"},"
 			echo "  \"bits_per_sample\": ${bits_per_raw_sample:-\"n/a\"},"
 		fi
-		echo "  \"left_peak_level_db\": ${left_rounded_peak:-\"n/a\"},"
+
+		if [[ "$left_rounded_peak" = "-inf" ]]; then
+			echo "  \"left_peak_level_db\": ${left_rounded_peak:-\"-inf\"},"
+		else
+			echo "  \"left_peak_level_db\": ${left_rounded_peak:-\"n/a\"},"
+		fi
 
 		if [[ "$left_rounded_noise" = "-inf" ]]; then
 			echo "  \"left_noise_floor_db\": \"-inf\","
@@ -620,8 +625,17 @@ function long_running_task() {
 			echo "  \"left_noise_floor_db\": ${left_rounded_noise:-\"n/a\"},"
 		fi
 
-		echo "  \"left_crest_factor\": ${left_rounded_crest:-\"n/a\"},"
-		echo "  \"right_peak_level_db\": ${right_rounded_peak:-\"n/a\"},"
+		if [[ "$left_rounded_crest" = "-inf" ]]; then
+			echo "  \"left_crest_factor\": \"-inf\","
+		else
+			echo "  \"left_crest_factor\": ${left_rounded_crest:-\"n/a\"},"
+		fi
+
+		if [[ "$right_rounded_peak" = "-inf" ]]; then
+			echo "  \"right_peak_level_db\": \"-inf\","
+		else
+			echo "  \"right_peak_level_db\": ${right_rounded_peak:-\"n/a\"},"
+		fi
 
 		if [[ "$right_rounded_noise" = "-inf" ]]; then
 			echo "  \"right_noise_floor_db\": \"-inf\","
@@ -629,11 +643,36 @@ function long_running_task() {
 			echo "  \"right_noise_floor_db\": ${right_rounded_noise:-\"n/a\"},"
 		fi
 
-		echo "  \"right_crest_factor\": ${right_rounded_crest:-\"n/a\"},"
-		echo "  \"average_phase\": ${average_phase:-\"n/a\"},"
-		echo "  \"integrated_loudness_lufs\": ${rounded_integrated_loudness:-\"n/a\"},"
-		echo "  \"true_peak_db\": ${rounded_true_peak:-\"n/a\"},"
-		echo "  \"loudness_range_lu\": ${rounded_loudness_range:-\"n/a\"}"
+		if [[ "$right_rounded_crest" = "-inf" ]]; then
+			echo "  \"right_crest_factor\": \"-inf\","
+		else
+			echo "  \"right_crest_factor\": ${right_rounded_crest:-\"n/a\"},"
+		fi
+
+		if [[ "$average_phase" = "-inf" ]]; then
+			echo "  \"average_phase\": \"-inf\","
+		else
+			echo "  \"average_phase\": ${average_phase:-\"n/a\"},"
+		fi
+
+		if [[ "$rounded_integrated_loudness" = "-inf" ]]; then
+			echo "  \"integrated_loudness_lufs\": \"-inf\","
+		else
+			echo "  \"integrated_loudness_lufs\": ${rounded_integrated_loudness:-\"n/a\"},"
+		fi
+
+		if [[ "$rounded_true_peak" = "-inf" ]]; then
+			echo "  \"true_peak_db\": \"-inf\","
+		else
+			echo "  \"true_peak_db\": ${rounded_true_peak:-\"n/a\"},"
+		fi
+
+		if [[ "$rounded_loudness_range" = "-inf" ]]; then
+			echo "  \"loudness_range_lu\": \"-inf\""
+		else
+			echo "  \"loudness_range_lu\": ${rounded_loudness_range:-\"n/a\"}"
+		fi
+
 		echo "},"
 	fi
 } >> "$RESULTS_FILE"
