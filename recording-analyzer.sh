@@ -287,6 +287,7 @@ function add_dir_flat() {
 	local f
 	while IFS= read -r -d '' f; do
 		add_if_audio "$f" "$ext_pattern"
+		[[ $PROCESSING_LIMIT -gt 0 && ${#AUDIO_FILES[@]} -ge $PROCESSING_LIMIT ]] && break
 	done < <(find "$dir" -maxdepth 1 -type f -a \( "${find_args[@]}" \) -print0)
 }
 
@@ -299,6 +300,7 @@ function add_dir_recursive() {
 	local f
 	while IFS= read -r -d '' f; do
 		add_if_audio "$f" "$ext_pattern"
+		[[ $PROCESSING_LIMIT -gt 0 && ${#AUDIO_FILES[@]} -ge $PROCESSING_LIMIT ]] && break
 	done < <(find "$dir" -type f -a \( "${find_args[@]}" \) -print0)
 }
 
