@@ -764,7 +764,7 @@ readonly PROCESSING_LIMIT
 #
 # Build the active extension list from the default list and the AUDIO_EXTENSIONS environment variable, if set.
 #
-declare -a EXTENSIONS
+declare -a EXTENSIONS=()
 AUDIO_EXTENSIONS="${AUDIO_EXTENSIONS:-}"
 if [[ -n "$AUDIO_EXTENSIONS" ]]; then
 	# Read the env var into an array (word-splitting on spaces/tabs is intentional here)
