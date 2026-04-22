@@ -113,12 +113,13 @@ results.
 
 Options:
   -h, --help        Show this help message and exit
-  -v, --version     Show program version and exit
-  -q, --quiet       Suppress progress spinner and other non-essential output
   -j, --json        Output results in JSON format (default: human-readable text)
+  -l, --limit N     Limit processing to the first N audio files found (default: no limit)
   -m, --metadata    Include metadata fields (genre, artist, album, track,
                     duration, date, sample rate, bit rate) in output
+  -q, --quiet       Suppress progress spinner and other non-essential output
   -r, --recurse     Recursively search directories for audio files
+  -v, --version     Show program version and exit
 
   Examples:
 	# Analyze a single file with human-readable output
@@ -143,9 +144,8 @@ Options:
 
 #
 # Optional processing limit to prevent overloading the system with too many files.
-# Can be set via PROCESSING_LIMIT environment variable, default is 0 for no limit.
 #
-readonly DEFAULT_PROCESSING_LIMIT=0
+PROCESSING_LIMIT=0
 
 #
 # Default audio file extensions to look for (can be overridden by AUDIO_EXTENSIONS env var).
@@ -196,6 +196,20 @@ while [[ $# -gt 0 ]]; do
 			RECURSE_FLAG=("-r")
 			shift
 			;;
+		-l|--limit)
+			if [[ -n "$2" && "$2" != -* ]]; then
+				if [[ "$2" =~ ^[1-9][0-9]*$ ]]; then
+					PROCESSING_LIMIT="$2"
+					shift 2
+				else
+					error_log "Warning: invalid value for --limit: '$2' (must be a positive integer)"
+					shift 2
+				fi
+			else
+				error_log "Warning: --limit option requires a positive integer argument"
+				shift
+			fi
+			;;
 		*)
 			if [[ "$1" == -* ]]; then
 				error_log "Warning: ignoring unknown option '$1'"
@@ -213,6 +227,8 @@ done
 readonly JSON_OUTPUT
 readonly INCLUDE_METADATA
 readonly QUIET
+readonly RECURSE_FLAG
+readonly PROCESSING_LIMIT
 set -- "${POSITIONAL[@]}"
 
 #
@@ -750,18 +766,6 @@ function long_running_task() {
 		echo "},"
 	fi
 } >> "$RESULTS_FILE"
-
-#
-# Validate the PROCESSING_LIMIT environment variable if set, otherwise use the default.
-#
-PROCESSING_LIMIT="${PROCESSING_LIMIT:-$DEFAULT_PROCESSING_LIMIT}"
-if [[ "$PROCESSING_LIMIT" != "0" ]]; then
-	if ! [[ "$PROCESSING_LIMIT" =~ ^[1-9][0-9]*$ ]]; then
-		error_log "Warning: Invalid PROCESSING_LIMIT value '$PROCESSING_LIMIT', using default of $DEFAULT_PROCESSING_LIMIT"
-		PROCESSING_LIMIT=$DEFAULT_PROCESSING_LIMIT
-	fi
-fi
-readonly PROCESSING_LIMIT
 
 #
 # Build the active extension list from the default list and the AUDIO_EXTENSIONS environment variable, if set.
