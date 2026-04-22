@@ -26,7 +26,7 @@ set -o errtrace
 #
 # Program version is automatically updated by GitHub Actions on new releases.
 #
-readonly VERSION="1.0.1"
+readonly VERSION="1.0.2"
 
 #
 # Check for minimum Bash version (4.1 or greater) since we rely on associative arrays and other features not available in older versions.
@@ -369,10 +369,10 @@ function collect_audio_files() {
 
 	# Use realpath to resolve symlinks and get a canonical path for each file, then use an associative array to track seen paths.
 	# This way we can avoid processing the same file multiple times if it appears in multiple locations.
+	local -A seen_map
 	for f in "${AUDIO_FILES[@]}"; do
 		local real
 		real=$(realpath --no-symlinks "$f" 2>/dev/null || echo "$f")
-		declare -A seen_map
 		if [[ -z "${seen_map[$real]+_}" ]]; then
 			seen_map[$real]=1
 			unique+=("$f")
