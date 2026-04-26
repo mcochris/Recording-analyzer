@@ -180,9 +180,8 @@ function get_command_line_args() {
 #	Convert a value to an integer if it's a valid number, otherwise return empty string.
 #
 function integerize() {
-    local value="$1"
-    if [[ "$value" =~ ^-?[0-9]+(\.[0-9]+)?$ ]]; then
-        printf "%.0f" "$value"
+    if [[ "$1" =~ ^-?[0-9]+(\.[0-9]+)?$ ]]; then
+        printf "%.0f" "$1"
     else
         echo ""
     fi
@@ -208,9 +207,9 @@ function get_channel_stats() {
 	function failed() {
 		local channel
 		for channel in 1 2; do
-			_channel_stats["$channel:Peak level dB"]="n/a"
-			_channel_stats["$channel:Noise floor dB"]="n/a"
-			_channel_stats["$channel:Crest factor"]="n/a"
+			_channel_stats["$channel:Peak level dB"]=""
+			_channel_stats["$channel:Noise floor dB"]=""
+			_channel_stats["$channel:Crest factor"]=""
 		done
 		_num_channels=0
 	}
@@ -241,7 +240,7 @@ function get_channel_stats() {
 		    if [[ -n "$stat" ]]; then
 				_channel_stats["$channel:$field"]=$(printf "%.2f" "$stat")
 			else
-				_channel_stats["$channel:$field"]="n/a"
+				_channel_stats["$channel:$field"]=""
 			fi
 
 			debug "Channel $channel $field for \"$file\": ${_channel_stats["$channel:$field"]}"
@@ -282,7 +281,7 @@ function get_average_phase() {
 
 	average_phase=$(ffmpeg -hide_banner -i "$file" -af "aphasemeter=video=0,ametadata=print:file=-" -f null - 2> /dev/null \
 		| grep 'lavfi.aphasemeter.phase' \
-		| awk -F '=' '{ sum+=$2; n++ } END { if (n>0) printf "%.2f", sum/n; else print "n/a" }')
+		| awk -F '=' '{ sum+=$2; n++ } END { if (n>0) printf "%.2f", sum/n; else print "" }')
 
 	debug "Average phase for $file: $average_phase"
 
@@ -305,20 +304,20 @@ function get_metadata() {
 
 	for field in "GENRE" "ARTIST" "ALBUM" "track" "DATE"; do
 		_metadata["$field"]=$(jq -r --arg field "$field" '.format.tags[$field] // empty' <<< "$FFPROBE")
-		[[ -z "${_metadata["$field"]}" ]] && _metadata["$field"]="n/a"
+		[[ -z "${_metadata["$field"]}" ]] && _metadata["$field"]=""
 	done
 
-	[[ "${_metadata["track"]}" != "n/a" ]] && integerize _metadata["track"]
+	#[[ "${_metadata["track"]}" != "n/a" ]] && _metadata["track"]=$(integerize "${_metadata["track"]}")
 
 	for field in "sample_rate" "bit_rate" "bits_per_raw_sample"; do
 		_metadata["$field"]=$(jq -r --arg f "$field" '.streams[0][$f] // .format[$f] // empty' <<< "$FFPROBE")
-		[[ -z "${_metadata["$field"]}" ]] && _metadata["$field"]="n/a"
-		[[ "${_metadata["$field"]}" != "n/a" ]] && integerize _metadata["$field"]
+		#[[ -z "${_metadata["$field"]}" ]] && _metadata["$field"]="n/a"
+		#[[ "${_metadata["$field"]}" != "n/a" ]] && _metadata["$field"]=$(integerize "${_metadata["$field"]}")
 	done
 
 	_metadata["duration"]=$(jq -r '.format.duration // empty' <<< "$FFPROBE" | awk '{printf "%.0f", $1}')
-	[[ -z "${_metadata["duration"]}" ]] && _metadata["duration"]="n/a"
-	[[ "${_metadata["duration"]}" != "n/a" ]] && integerize _metadata["duration"]
+	#[[ -z "${_metadata["duration"]}" ]] && _metadata["duration"]="n/a"
+	#[[ "${_metadata["duration"]}" != "n/a" ]] && _metadata["duration"]=$(integerize "${_metadata["duration"]}")
 }
 
 function create_find_parameters() {
@@ -407,7 +406,9 @@ function generate_report() {
 
 	get_loudness "$file" loudness_stats || { error_log "ERROR: failed to get loudness for \"$file\""; return 1; }
 
-	get_metadata "$file" metadata || { error_log "ERROR: failed to get metadata for \"$file\""; return 1; }
+	if [[ "$INCLUDE_METADATA" == true ]]; then
+		get_metadata "$file" metadata || { error_log "ERROR: failed to get metadata for \"$file\""; return 1; }
+	fi
 
 	if [[ "$JSON_OUTPUT" = "false" ]]; then
 		echo ""
