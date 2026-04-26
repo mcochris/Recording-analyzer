@@ -19,10 +19,9 @@ INCLUDE_METADATA=false
 QUIET=false
 LIMIT=0
 i=0
-JSON_REPORT
 
 #
-# Cleanup function to remove temporary files and restore terminal state on exit.
+# Cleanup function to display error log on exit.
 #
 function cleanup() {
 	echo -e "$ERROR_LOG"
@@ -359,8 +358,8 @@ function create_find_parameters() {
 		printf '%s\n' "${return[@]}"
 }
 
-function run_find() {
-	debug "run_find called with arguments: $*"
+function find_files() {
+	debug "find_files called with arguments: $*"
 	local dir="$1"
 	local base="$2"
 
@@ -487,10 +486,14 @@ for positional in "${POSITIONAL[@]}"; do
 	debug "Positional argument: $positional"
 	readarray -t find_parameters < <(create_find_parameters "$positional")
 	debug "Find parameters: ${find_parameters[*]}"
-	readarray -t FILES < <(run_find "${find_parameters[@]}")
-	debug "${#FILES[@]} files found for $positional: $(printf '\n%s' "${FILES[@]}")"
+	if [[ ${#find_parameters[@]} -ne 2 ]]; then
+		FILES=("$positional")
+	else
+		readarray -t FILES < <(find_files "${find_parameters[@]}")
+		debug "${#FILES[@]} files found for $positional: $(printf '\n%s' "${FILES[@]}")"
+	fi
 	i=1
-	[[ "$JSON_OUTPUT" == "true" ]] && JSON_REPORT="["  # open JSON array
+	[[ "$JSON_OUTPUT" == "true" ]] && JSON_REPORT="["
 	for file in "${FILES[@]}"; do
 		generate_report "$file"
 		((i++))
