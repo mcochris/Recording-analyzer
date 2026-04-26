@@ -12,24 +12,24 @@ set -o errtrace
 readonly DEFAULT_EXTENSIONS=(aac ac3 aif aiff amr caf dsf dff flac m4a mp3 ogg opus pcm wav wma)
 EXTENSIONS=("${DEFAULT_EXTENSIONS[@]}")
 ERROR_LOG=""
-REPORT=""
 DEBUG=false
 RECURSE=false
 JSON_OUTPUT=false
 INCLUDE_METADATA=false
 QUIET=false
 LIMIT=0
+i=0
+JSON_REPORT
 
 #
 # Cleanup function to remove temporary files and restore terminal state on exit.
 #
 function cleanup() {
-	echo -e "$REPORT"
 	echo -e "$ERROR_LOG"
 }
 
-trap 'echo "Aborted."; exit 130' SIGINT
-trap 'echo "Terminated."; exit 143' SIGTERM
+trap 'echo "Aborted."; cleanup; exit 130' SIGINT
+trap 'echo "Terminated."; cleanup; exit 143' SIGTERM
 trap cleanup EXIT
 
 usage() {
@@ -255,6 +255,7 @@ function get_channel_stats() {
 #
 function get_loudness() {
 	local file="$1"
+	local -n _loudness_stats="$2"
 	local loudness integrated_loudness true_peak loudness_range
 
 	[[ -z "$file" ]] && { error_log "ERROR: get_loudness requires a file"; return 1; }
@@ -266,15 +267,9 @@ function get_loudness() {
 	true_peak=$(echo "$loudness" | grep "input_tp" | cut -d: -f2 | tr -d '":, ')
 	loudness_range=$(echo "$loudness" | grep "input_lra" | cut -d: -f2 | tr -d '":, ')
 
-	loudness_stats=(
-		"Integrated loudness (LUFS)=$integrated_loudness"
-		"True peak (dBTP)=$true_peak"
-		"Loudness range (LU)=$loudness_range"
-	)
+	_loudness_stats=([0]="$integrated_loudness" [1]="$true_peak" [2]="$loudness_range")
 
-	debug "Loudness stats for $file: ${loudness_stats[*]}"
-
-	echo "${loudness_stats[@]}"
+	debug "Loudness stats for $file: ${_loudness_stats[*]}"
 }
 
 #
@@ -396,10 +391,10 @@ function run_find() {
 function generate_report() {
 	local file="$1"
 	readonly file
-	declare -A channel_stats metadata
+	declare -A channel_stats metadata loudness_stats
 	declare num_channels
-	local channel_stats num_channels average_phase genre artist album track duration date sample_rate \
-		bit_rate bits_per_raw_sample
+	local channel_stats num_channels average_phase track duration sample_rate \
+		bit_rate bits_per_raw_sample text
 
 	debug "Generating report for file: $file"
 
@@ -407,54 +402,81 @@ function generate_report() {
 
 	get_channel_stats "$file" channel_stats num_channels || { error_log "ERROR: failed to get astats for \"$file\""; return 1; }
 
-	# Just two channels for now.
 	[[ "$num_channels" -gt 2 ]] && error_log "WARNING: more than 2 channels detected in \"$file\"; only processing first 2 channels"
-
-	#local left_peak="${channel_stats["1:Peak level dB"]}"
-	#local left_noise="${channel_stats["1:Noise floor dB"]}"
-	#local left_crest="${channel_stats["1:Crest factor"]}"
-	#local right_peak="${channel_stats["2:Peak level dB"]}"
-	#local right_noise="${channel_stats["2:Noise floor dB"]}"
-	#local right_crest="${channel_stats["2:Crest factor"]}"
 
 	average_phase=$(get_average_phase "$file") || { error_log "ERROR: failed to get stereo phase for \"$file\""; return 1; }
 
-	loudness=$(get_loudness "$file") || { error_log "ERROR: failed to get loudness for \"$file\""; return 1; }
+	get_loudness "$file" loudness_stats || { error_log "ERROR: failed to get loudness for \"$file\""; return 1; }
 
 	get_metadata "$file" metadata || { error_log "ERROR: failed to get metadata for \"$file\""; return 1; }
 
-	#debug "Metadata for $file: GENRE=${metadata["GENRE"]}, ARTIST=${metadata["ARTIST"]}, ALBUM=${metadata["ALBUM"]}, track=${metadata["track"]}, DATE=${metadata["DATE"]}, sample_rate=${metadata["sample_rate"]}, bit_rate=${metadata["bit_rate"]}, bits_per_raw_sample=${metadata["bits_per_raw_sample"]}, duration=${metadata["duration"]}"
-
-	#genre="${metadata["GENRE"]}"
-	#artist="${metadata["ARTIST"]}"
-	#album="${metadata["ALBUM"]}"
-	#track="${metadata["track"]}"
-	#date="${metadata["DATE"]}"
-	#sample_rate="${metadata["sample_rate"]}"
-	#bit_rate="${metadata["bit_rate"]}"
-	#bits_per_raw_sample="${metadata["bits_per_raw_sample"]}"
-	#duration="${metadata["duration"]}"
-
-	# Print header and per-channel stats to results file.
 	if [[ "$JSON_OUTPUT" = "false" ]]; then
 		echo ""
-		TEXT="Audio Analysis: \"$(basename "$file")\""
-		echo "$TEXT"
-		printf '=%.0s' $(seq 1 ${#TEXT})
+		text="Audio Analysis: \"$(basename "$file")\""
+		echo "$text"
+		printf '🭶%.0s' $(seq 1 ${#text})
 		echo ""
 
 		if [[ "$INCLUDE_METADATA" == true ]]; then
 			echo "Metadata:"
-			for key in "GENRE" "ARTIST" "ALBUM" "track" "DATE" "sample_rate" "bit_rate" "bits_per_raw_sample" "duration"; do
-				printf "  %s: %s\n" "$key" "${metadata["$key"]}"
-			done
+			echo "  Genre:           ${metadata["GENRE"]}"
+			echo "  Artist:          ${metadata["ARTIST"]}"
+			echo "  Album:           ${metadata["ALBUM"]}"
+			echo "  Track:           ${metadata["track"]}"
+			echo "  Duration:        ${metadata["duration"]}"
+			echo "  Year:            ${metadata["DATE"]}"
+			echo "  Sample Rate:     ${metadata["sample_rate"]}"
+			echo "  Avg. Bit Rate:   ${metadata["bit_rate"]}"
+			echo "  Bits per sample: ${metadata["bits_per_raw_sample"]}"
 			echo ""
 		fi
 
-		echo "Metadata:"
+		echo "Left Channel:"
+		echo "  Peak level:      ${channel_stats["1:Peak level dB"]} dBFS"
+		echo "  Noise floor:     ${channel_stats["1:Noise floor dB"]} dBFS"
+		echo "  Crest factor:    ${channel_stats["1:Crest factor"]} dB"
+		echo ""
+		echo "Right Channel:"
+		echo "  Peak level:      ${channel_stats["2:Peak level dB"]} dBFS"
+		echo "  Noise floor:     ${channel_stats["2:Noise floor dB"]} dBFS"
+		echo "  Crest factor:    ${channel_stats["2:Crest factor"]} dB"
+		echo ""
+		echo "Average phase:     $average_phase"
+		echo ""
+		echo "Loudness:"
+		echo "  Integrated loudness:  ${loudness_stats[0]} LUFS"
+		echo "  True peak:            ${loudness_stats[1]} dBTP"
+		echo "  Loudness range:       ${loudness_stats[2]} LU"
 	fi
 
-
+	JSON_REPORT+=$(if [[ "$JSON_OUTPUT" = "true" ]]; then
+		echo "  {"
+		echo "    \"id\": $i,"
+		echo "    \"path\": \"$(dirname "$(realpath "$file")")\","
+		echo "    \"file\": \"$(basename "$file")\","
+		if [[ "$INCLUDE_METADATA" == true ]]; then
+			echo "    \"genre\": \"${metadata["GENRE"]}\","
+			echo "    \"artist\": \"${metadata["ARTIST"]}\","
+			echo "    \"album\": \"${metadata["ALBUM"]}\","
+			echo "    \"track\": \"${metadata["track"]}\","
+			echo "    \"duration\": \"${metadata["duration"]}\","
+			echo "    \"year\": \"${metadata["DATE"]}\","
+		fi
+		echo "    \"sample_rate\": \"${metadata["sample_rate"]}\","
+		echo "    \"bit_rate\": \"${metadata["bit_rate"]}\","
+		echo "    \"bits_per_sample\": \"${metadata["bits_per_raw_sample"]}\","
+		echo "    \"left_peak_level_dB\": \"${channel_stats["1:Peak level dB"]}\","
+		echo "    \"left_noise_floor_dB\": \"${channel_stats["1:Noise floor dB"]}\","
+		echo "    \"left_crest_factor_dB\": \"${channel_stats["1:Crest factor"]}\","
+		echo "    \"right_peak_level_dB\": \"${channel_stats["2:Peak level dB"]}\","
+		echo "    \"right_noise_floor_dB\": \"${channel_stats["2:Noise floor dB"]}\","
+		echo "    \"right_crest_factor_dB\": \"${channel_stats["2:Crest factor"]}\","
+		echo "    \"average_phase\": \"$average_phase\","
+		echo "    \"integrated_loudness_LUFS\": \"${loudness_stats[0]}\","
+		echo "    \"true_peak_dBTP\": \"${loudness_stats[1]}\","
+		echo "    \"loudness_range_LU\": \"${loudness_stats[2]}\""
+		echo "  },"
+	fi)
 }
 
 #
@@ -468,8 +490,12 @@ for positional in "${POSITIONAL[@]}"; do
 	readarray -t FILES < <(run_find "${find_parameters[@]}")
 	debug "${#FILES[@]} files found for $positional: $(printf '\n%s' "${FILES[@]}")"
 	i=1
+	[[ "$JSON_OUTPUT" == "true" ]] && JSON_REPORT="["  # open JSON array
 	for file in "${FILES[@]}"; do
 		generate_report "$file"
 		((i++))
 	done
+	if [[ "$JSON_OUTPUT" == "true" ]]; then
+		echo "$JSON_REPORT" | sed '$ s/,$/]/' | jq "."
+	fi
 done
