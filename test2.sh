@@ -28,12 +28,12 @@ set -o errtrace
 #
 if [ -z "$BASH_VERSION" ]; then
     echo 'Cannot detect Bash version. Are you running this with Bash?' >&2
-    exit 1
+    exit $LINENO
 fi
 if [ "${BASH_VERSINFO[0]}" -lt 4 ] || [ "${BASH_VERSINFO[0]}" -eq 4 ] && [ "${BASH_VERSINFO[1]}" -lt 3 ]; then
     echo 'Bash version 4.3 or greater is required for this script.' >&2
     echo "You appear to be running version $BASH_VERSION." >&2
-    exit 1
+    exit $LINENO
 fi
 
 #
@@ -66,6 +66,13 @@ COLS=$(tput cols)
 readonly COLS
 
 #
+# Function to log errors to the ERROR_LOG file.
+#
+function error_log() {
+	echo "$1" >> "$ERROR_LOG"
+}
+
+#
 # Cleanup function to display errors and remove temporary files on exit.
 #
 function cleanup() {
@@ -82,79 +89,73 @@ trap 'echo "Aborted."; cleanup; exit 130' SIGINT
 trap 'echo "Terminated."; cleanup; exit 143' SIGTERM
 trap cleanup EXIT
 
-usage() {
-cat <<'EOF'
-Usage:
-  ./test.sh [options] PATH_OR_PATTERN [...]
+#
+# Get the program name for usage messages and other references.
+#
+THIS_PGM=$(basename "$0")
+readonly THIS_PGM
+# Check if at least one argument is provided, otherwise show usage and exit.
+[[ $# -eq 0 ]] && { echo "Usage: $THIS_PGM <audio_file>"; exit $LINENO; }
 
-Examples:
-  ./test.sh ~/Music
-  ./test.sh -r ~/Music
-  ./test.sh -r -e "wav flac" ~/Music
-  ./test.sh -r '~/Music/*.wav'
-  ./test.sh ~/Music/song.wav
+readonly HELP << EOD
+╭──────────────────────────────────────────────────────────────────────────────╮
+│                                                                              │
+│                        Welcome to Recording Analyzer!                        │
+│                                                                              │
+╰──────────────────────────────────────────────────────────────────────────────╯
+
+Usage:
+	$THIS_PGM <audio_file> ...
+	- or -
+	$THIS_PGM <directory> ...
+
+This program is used to analyze audio files and extract various statistics.
+The script provides insights into the quality and characteristics of the
+recording, which can be useful for audio engineers, musicians, and anyone
+interested in understanding the technical aspects of their audio files.
+
+JSON output format is available for easy integration with other tools or for
+further processing. Metadata fields can also be included in the output for a
+more comprehensive analysis. Upload the JSON output of your audio files to
+https://recording-analyzer.mcochris.com/ to view an interactive visualization
+of the statistics, create playlists and spreadsheets based on the analysis
+results.
 
 Options:
-  -r, --recurse                 Recurse into subdirectories
-  -e, --extensions "ext ..."   Space-separated extension list for directory searches
-  -h, --help                   Show this help
-  -l, --limit N                   Limit the number of results (not implemented yet)
-  -j, --json                    Output results in JSON format (not implemented yet)
-  -m, --metadata                 Include metadata in output (not implemented yet)
-  -q, --quiet                    Suppress non-error output (not implemented yet)
-  -v, --version				  Show version information (not implemented yet)
-  -d, --debug                    Enable debug output (not implemented yet)
-EOF
-}
+  -d, --debug       Enable debug mode to show detailed processing information
+  -e, --extensions  Specify a custom list of audio file extensions to analyze
+  -h, --help        Show this help message and exit
+  -j, --json        Output results in JSON format (default: human-readable text)
+  -l, --limit N     Limit processing to the first N audio files found (default: no limit)
+  -m, --metadata    Include metadata fields in output
+  -q, --quiet       Suppress progress spinner and other non-essential output
+  -r, --recurse     Recursively search directories for audio files
+  -v, --version     Show program version and exit
+
+  Examples:
+	# Analyze a single file with human-readable output
+	$THIS_PGM ~/Music/track.flac
+
+	# Analyze all music files in a directory recursively
+	$THIS_PGM --recurse ~/Music
+
+	# Analyze files and directories with metadata included
+	$THIS_PGM --metadata ~/Music/track.flac ../song.mp3 /mnt/nas/audio/album/
+
+	# Analyze music files and redirect JSON output to a file for use with the web
+	# page at https://recording-analyzer.mcochris.com/
+	$THIS_PGM --json --metadata "~/Music/*.flac" > analysis_results.json
+
+	For more details, please visit the GitHub repository:
+	https://github.com/mcochris/Recording-analyzer
+
+	Questions, issues, suggestions? Please open a support ticket at:
+	https://github.com/mcochris/Recording-analyzer/issues
+EOD
 
 #
-# Function to log errors to the ERROR_LOG string.
+# Loop through options and arguments, handling known flags and collecting positional arguments for file processing.
 #
-function error_log() {
-	echo "$1" >> "$ERROR_LOG"
-}
-
-function in_array() {
-	local needle="$1"; shift
-	local item
-	for item in "$@"; do
-		[[ "$item" == "$needle" ]] && return 0
-	done
-	return 1
-}
-
-function is_extension_valid() {
-	local ext="$1"
-	[[ -z "$ext" ]] && return 1
-	in_array "$ext" "${DEFAULT_EXTENSIONS[@]}" && return 0
-	return 1
-}
-
-function validate_extensions() {
-	local ext
-	for ext in "${EXTENSIONS[@]}"; do
-		if ! is_extension_valid "$ext"; then
-			error_log "Error: unrecognized extension: $ext"
-			exit $LINENO
-		fi
-	done
-}
-
-function build_extension_list() {
-	local ext
-	for ext in "${EXTENSIONS[@]}"; do
-		list+="$ext\|"
-	done
-	echo "${list%\\|}"  # strip trailing \|
-}
-
-function debug() {
-	# don't make this a one-liner
-    if [[ "${DEBUG:-false}" == true ]]; then
-		echo "DEBUG [${BASH_LINENO[0]}]: $*" >&2
-    fi
-}
-
 function get_command_line_args() {
 	POSITIONAL=()
 	while [[ $# -gt 0 ]]; do
@@ -173,7 +174,7 @@ function get_command_line_args() {
 				shift 2
 				;;
 			-h|--help)
-				usage
+				echo "$HELP"
 				exit 0
 				;;
 			-j|--json)
@@ -211,7 +212,7 @@ function get_command_line_args() {
 				;;
 			-*)
 				error_log "Error: unknown option: $1"
-				usage >&2
+				echo "$HELP" >&2
 				exit $LINENO
 				;;
 			*)
@@ -222,9 +223,72 @@ function get_command_line_args() {
 	done
 
 	if ((${#POSITIONAL[@]} == 0)); then
-		usage >&2
+		echo "$HELP" >&2
 		exit $LINENO
 	fi
+}
+
+#
+# Debug function to print messages when DEBUG mode is enabled.
+#
+function debug() {
+	# don't make this a one-liner
+    if [[ "$DEBUG" == true ]]; then
+		echo "DEBUG [${BASH_LINENO[0]}]: $*" >&2
+    fi
+}
+
+#
+# May help in remote debugging efforts.
+#
+debug "Bash version: $BASH_VERSION"
+debug "Machine type: $MACHTYPE"
+debug "Program arguments: $*"
+
+#
+# Utility function to check if a value is in an array.
+#
+function in_array() {
+	local needle="$1"; shift
+	local item
+	for item in "$@"; do
+		[[ "$item" == "$needle" ]] && return 0
+	done
+	return $LINENO
+}
+
+#
+# Validate that the provided extension is in the list of supported audio formats.
+#
+function is_extension_valid() {
+	local ext="$1"
+	[[ -z "$ext" ]] && return $LINENO
+	in_array "$ext" "${DEFAULT_EXTENSIONS[@]}" && return 0
+	return $LINENO
+}
+
+#
+# Validate all extensions in the users --extensions option.
+#
+function validate_extensions() {
+	local ext
+	for ext in "${EXTENSIONS[@]}"; do
+		if ! is_extension_valid "$ext"; then
+			error_log "Error: unrecognized extension: $ext"
+			exit $LINENO
+		fi
+	done
+}
+
+#
+# Build a regex pattern for find command based on the list of extensions.
+#
+function build_extension_list() {
+	local ext
+	for ext in "${EXTENSIONS[@]}"; do
+		list+="$ext\|"
+	done
+	echo "${list%\\|}"  # strip trailing \|
 }
 
 #
@@ -239,7 +303,7 @@ function integerize() {
 }
 
 #
-# Extract duration in seconds, rounded to nearest whole number.
+# Extract metadata duration in seconds, rounded to nearest whole number.
 #
 function get_duration() {
 	echo "$FFPROBE" | jq -r '.format.duration // empty' | awk '{printf "%.0f", $1}'
@@ -267,18 +331,18 @@ function get_channel_stats() {
 
 	local ASTATS
 	ASTATS=$(ffmpeg -hide_banner -i "$file" -af "astats" -f null - 2>&1) \
-		|| { error_log "ERROR: ffmpeg failed to process \"$file\""; failed; return 1;}
+		|| { error_log "ERROR: ffmpeg failed to process \"$file\""; failed; return $LINENO;}
 	readonly ASTATS
 
 	# Detect number of channels.
 	_num_channels=$(grep --count "Channel: [0-9]" <<< "$ASTATS") \
-		|| { error_log "ERROR: failed to detect number of channels in \"$file\""; failed; return 1;}
+		|| { error_log "ERROR: failed to detect number of channels in \"$file\""; failed; return $LINENO;}
 
 	debug "Detected $_num_channels channels in \"$file\""
 
 	_num_channels=$(integerize "$_num_channels")
 	[[ -z "$_num_channels" || "$_num_channels" -le 0 ]] \
-		&& { error_log "ERROR: invalid number of channels detected in \"$file\""; failed; return 1; }
+		&& { error_log "ERROR: invalid number of channels detected in \"$file\""; failed; return $LINENO; }
 
 	local channel
 	for channel in 1 2; do
@@ -300,17 +364,17 @@ function get_channel_stats() {
 }
 
 #
-# Extract a field from the loudnorm JSON.
+# Extract the loudness statistics from the ffmpeg loudnorm option.
 #
 function get_loudness() {
 	local file="$1"
 	local -n _loudness_stats="$2"
 	local loudness integrated_loudness true_peak loudness_range
 
-	[[ -z "$file" ]] && { error_log "ERROR: get_loudness requires a file"; return 1; }
+	[[ -z "$file" ]] && { error_log "ERROR: get_loudness requires a file"; return $LINENO; }
 
 	loudness=$(ffmpeg -hide_banner -i "$file" -af loudnorm=print_format=json -f null - 2>&1 | awk '/^{/,/^}/') \
-		|| { error_log "ERROR: ffmpeg failed to run loudnorm on \"$file\""; return 1; }
+		|| { error_log "ERROR: ffmpeg failed to run loudnorm on \"$file\""; return $LINENO; }
 
 	integrated_loudness=$(echo "$loudness" | grep "input_i" | cut -d: -f2 | tr -d '":, ')
 	true_peak=$(echo "$loudness" | grep "input_tp" | cut -d: -f2 | tr -d '":, ')
@@ -328,7 +392,7 @@ function get_average_phase() {
 	local file="$1"
 	local average_phase
 
-	[[ -z "$file" ]] && { error_log "ERROR: get_average_phase requires a file"; return 1; }
+	[[ -z "$file" ]] && { error_log "ERROR: get_average_phase requires a file"; return $LINENO; }
 
 	average_phase=$(ffmpeg -hide_banner -i "$file" -af "aphasemeter=video=0,ametadata=print:file=-" -f null - 2> /dev/null \
 		| grep 'lavfi.aphasemeter.phase' \
@@ -346,31 +410,31 @@ function get_metadata() {
 	local file="$1"
 	local -n _metadata="$2"
 
-	[[ -z "$file" ]] && { error_log "ERROR: get_metadata requires a filename"; return 1; }
+	[[ -z "$file" ]] && { error_log "ERROR: get_metadata requires a filename"; return $LINENO; }
 
 	local FFPROBE
 	FFPROBE=$(ffprobe -v quiet -print_format json -show_format -show_streams "$file" 2>&1) \
-		|| { error_log "ERROR: ffprobe failed to process \"$file\""; return 1; }
+		|| { error_log "ERROR: ffprobe failed to process \"$file\""; return $LINENO; }
 	readonly FFPROBE
 
 	for field in "GENRE" "ARTIST" "ALBUM" "track" "DATE"; do
 		_metadata["$field"]=$(jq -r --arg field "$field" '.format.tags[$field] // empty' <<< "$FFPROBE")
 		[[ -z "${_metadata["$field"]}" ]] && _metadata["$field"]=""
+		debug "Metadata $field for \"$file\": ${_metadata["$field"]}"
 	done
-
-	#[[ "${_metadata["track"]}" != "n/a" ]] && _metadata["track"]=$(integerize "${_metadata["track"]}")
 
 	for field in "sample_rate" "bit_rate" "bits_per_raw_sample"; do
 		_metadata["$field"]=$(jq -r --arg f "$field" '.streams[0][$f] // .format[$f] // empty' <<< "$FFPROBE")
-		#[[ -z "${_metadata["$field"]}" ]] && _metadata["$field"]="n/a"
-		#[[ "${_metadata["$field"]}" != "n/a" ]] && _metadata["$field"]=$(integerize "${_metadata["$field"]}")
+		debug "Metadata $field for \"$file\": ${_metadata["$field"]}"
 	done
 
 	_metadata["duration"]=$(jq -r '.format.duration // empty' <<< "$FFPROBE" | awk '{printf "%.0f", $1}')
-	#[[ -z "${_metadata["duration"]}" ]] && _metadata["duration"]="n/a"
-	#[[ "${_metadata["duration"]}" != "n/a" ]] && _metadata["duration"]=$(integerize "${_metadata["duration"]}")
+	debug "Metadata duration for \"$file\": ${_metadata["duration"]}"
 }
 
+#
+# Create the parameters for the find command based on the provided arguments, handling directories, files, and patterns.
+#
 function create_find_parameters() {
 		debug "create_find_parameters called with argument: $1"
 		local arg="$1"
@@ -397,17 +461,21 @@ function create_find_parameters() {
 		else
 			local base_ext="${base##*.}"
 			if ! is_extension_valid "$base_ext"; then
-				echo "Error: unrecognized extension in filename: $base" >&2
+				error_log "Error: unrecognized extension in filename: $base"
 				exit $LINENO
 			fi
-			debug "search for $base audio files in directory: $dir"
 		fi
+
+		debug "create_find_parameters returning: dir='$dir', base='$base'"
 
 		local return
 		return=("$dir" "$base")
 		printf '%s\n' "${return[@]}"
 }
 
+#
+# Find files matching the criteria using the find command, with options for recursion and extension filtering.
+#
 function find_files() {
 	debug "find_files called with arguments: $*"
 	local dir="$1"
@@ -450,7 +518,7 @@ function spinner() {
 	# Hide cursor
 	tput civis 1>&2
 
-	while kill -0 "$pid" 2>/dev/null; do
+	while kill -0 "$pid" 2> /dev/null; do
 		printf "\r%s... %s" "${message:0:$((COLS-5))}" "${frames[$i]}" 1>&2
 		i=$(( (i + 1) % ${#frames[@]} ))
 		sleep 0.1
@@ -461,6 +529,9 @@ function spinner() {
 	tput cnorm 1>&2
 }
 
+#
+# Generate the report for a single file, extracting all relevant statistics and formatting the output based on user preferences.
+#
 function generate_report() {
 	local file="$1"
 	local i="$2"
@@ -469,21 +540,29 @@ function generate_report() {
 	declare num_channels
 	local channel_stats num_channels average_phase track duration sample_rate bit_rate bits_per_raw_sample text json_object=""
 
-	#echo "Generating report for file: $file" 1>&2
+	debug "Generating report for file: $file"
 
-	[[ -f "$file" && -r "$file" && -s "$file" ]] || { error_log "ERROR: file not found, not readable, or empty: \"$file\""; return 1; }
+	[[ -f "$file" && -r "$file" && -s "$file" ]] \
+		|| { error_log "ERROR: file not found, not readable, or empty: \"$file\""; return $LINENO; }
 
-	get_channel_stats "$file" channel_stats num_channels || { error_log "ERROR: failed to get astats for \"$file\""; return 1; }
+	get_channel_stats "$file" channel_stats num_channels \
+		|| { error_log "ERROR: failed to get astats for \"$file\""; return $LINENO; }
 
 	[[ "$num_channels" -gt 2 ]] && error_log "WARNING: more than 2 channels detected in \"$file\"; only processing first 2 channels"
 
-	average_phase=$(get_average_phase "$file") || { error_log "ERROR: failed to get stereo phase for \"$file\""; return 1; }
+	average_phase=$(get_average_phase "$file") || { error_log "ERROR: failed to get stereo phase for \"$file\""; return $LINENO; }
 
-	get_loudness "$file" loudness_stats || { error_log "ERROR: failed to get loudness for \"$file\""; return 1; }
+	get_loudness "$file" loudness_stats || { error_log "ERROR: failed to get loudness for \"$file\""; return $LINENO; }
 
 	if [[ "$INCLUDE_METADATA" == true ]]; then
-		get_metadata "$file" metadata || { error_log "ERROR: failed to get metadata for \"$file\""; return 1; }
+		get_metadata "$file" metadata || { error_log "ERROR: failed to get metadata for \"$file\""; return $LINENO; }
 	fi
+
+	debug "Channel stats for \"$file\": ${channel_stats[*]}"
+	debug "Average phase for \"$file\": $average_phase"
+	debug "Loudness stats for \"$file\": ${loudness_stats[*]}"
+	debug "Metadata for \"$file\": ${metadata[*]}"
+	debug "JSON_OUTPUT: $JSON_OUTPUT, INCLUDE_METADATA: $INCLUDE_METADATA"
 
 	if [[ "$JSON_OUTPUT" == "false" ]]; then
 		echo " "
