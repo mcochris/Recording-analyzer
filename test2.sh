@@ -19,6 +19,7 @@ INCLUDE_METADATA=false
 QUIET=false
 LIMIT=0
 i=0
+declare -a JSON_REPORT=()
 
 #
 # Cleanup function to display error log on exit.
@@ -387,14 +388,13 @@ function find_files() {
 }
 
 function generate_report() {
-	local file="$1" json_object1 json_object2 json_object3
+	local file="$1"
 	readonly file
 	declare -A channel_stats metadata loudness_stats
 	declare num_channels
-	local channel_stats num_channels average_phase track duration sample_rate \
-		bit_rate bits_per_raw_sample text
+	local channel_stats num_channels average_phase track duration sample_rate bit_rate bits_per_raw_sample text json_object=""
 
-	debug "Generating report for file: $file" >&2
+	echo "Generating report for file: $file" 1>&2
 
 	[[ -f "$file" && -r "$file" && -s "$file" ]] || { error_log "ERROR: file not found, not readable, or empty: \"$file\""; return 1; }
 
@@ -411,11 +411,11 @@ function generate_report() {
 	fi
 
 	if [[ "$JSON_OUTPUT" == "false" ]]; then
-		echo ""
-		text="Audio Analysis: \"$(basename "$file")\""
+		echo " "
+		text="Recording Analysis: \"$(basename "$file")\""
 		echo "$text"
 		printf '🭶%.0s' $(seq 1 ${#text})
-		echo ""
+		echo " "
 
 		if [[ "$INCLUDE_METADATA" == true ]]; then
 			echo "Metadata:"
@@ -447,44 +447,72 @@ function generate_report() {
 		echo "  Integrated loudness:  ${loudness_stats[0]} LUFS"
 		echo "  True peak:            ${loudness_stats[1]} dBTP"
 		echo "  Loudness range:       ${loudness_stats[2]} LU"
+		echo " "
 	fi
 
-	if [[ "$JSON_OUTPUT" == "true" ]]; then
-	    json_object1=$(jq -n \
-			--argjson 	id					"$i"									\
-			--arg		path				"$(dirname "$(realpath "$file")")"		\
-			--arg		file				"$(basename "$file")"					\
-			--argjson	left_peak_dB		"${channel_stats["1:Peak level dB"]:-null}"	\
-			--argjson	left_noise_dB		"${channel_stats["1:Noise floor dB"]:-null}"	\
-			--argjson	left_crest_dB		"${channel_stats["1:Crest factor"]:-null}"	\
-			--argjson	right_peak_dB		"${channel_stats["2:Peak level dB"]:-null}"	\
-			--argjson	right_noise_dB		"${channel_stats["2:Noise floor dB"]:-null}"	\
-			--argjson	right_crest_dB		"${channel_stats["2:Crest factor"]:-null}"	\
-			--argjson	average_phase		"${average_phase:-null}"						\
-			--argjson	integrated_loudness	"${loudness_stats[0]:-null}"					\
-			--argjson 	true_peak_dBTP		"${loudness_stats[1]:-null}"					\
-			--argjson	loudness_range_LU	"${loudness_stats[2]:-null}"					\
-			'{id: $id, path: $path, file: $file, left_peak_dB: $left_peak_dB, left_noise_dB: $left_noise_dB, left_crest_dB: $left_crest_dB, right_peak_dB: $right_peak_dB, right_noise_dB: $right_noise_dB, right_crest_dB: $right_crest_dB, average_phase: $average_phase, integrated_loudness_LUFS: $integrated_loudness, true_peak_dBTP: $true_peak_dBTP, loudness_range_LU: $loudness_range_LU} | with_entries(select(.value != ""))')
+	#if [[ "$JSON_OUTPUT" == "true" ]]; then
+	#    json_object1=$(jq -n \
+	#		--argjson 	id					"$i"									\
+	#		--arg		path				"$(dirname "$(realpath "$file")")"		\
+	#		--arg		file				"$(basename "$file")"					\
+	#		--argjson	left_peak_dB		"${channel_stats["1:Peak level dB"]:-null}"	\
+	#		--argjson	left_noise_dB		"${channel_stats["1:Noise floor dB"]:-null}"	\
+	#		--argjson	left_crest_dB		"${channel_stats["1:Crest factor"]:-null}"	\
+	#		--argjson	right_peak_dB		"${channel_stats["2:Peak level dB"]:-null}"	\
+	#		--argjson	right_noise_dB		"${channel_stats["2:Noise floor dB"]:-null}"	\
+	#		--argjson	right_crest_dB		"${channel_stats["2:Crest factor"]:-null}"	\
+	#		--argjson	average_phase		"${average_phase:-null}"						\
+	#		--argjson	integrated_loudness	"${loudness_stats[0]:-null}"					\
+	#		--argjson 	true_peak_dBTP		"${loudness_stats[1]:-null}"					\
+	#		--argjson	loudness_range_LU	"${loudness_stats[2]:-null}"					\
+	#		'{id: $id, path: $path, file: $file, left_peak_dB: $left_peak_dB, left_noise_dB: $left_noise_dB, left_crest_dB: $left_crest_dB, right_peak_dB: $right_peak_dB, right_noise_dB: $right_noise_dB, right_crest_dB: $right_crest_dB, average_phase: $average_phase, integrated_loudness_LUFS: $integrated_loudness, true_peak_dBTP: $true_peak_dBTP, loudness_range_LU: $loudness_range_LU} | with_entries(select(.value != ""))')
 
-		if [[ "$INCLUDE_METADATA" == true ]]; then
-			json_object2=$(jq -n \
-				--arg		genre			"${metadata["GENRE"]:-}"		\
-				--arg		artist			"${metadata["ARTIST"]:-}"		\
-				--arg		album			"${metadata["ALBUM"]:-}"		\
-				--arg		track			"${metadata["track"]:-}"		\
-				--argjson	duration		"${metadata["duration"]:-null}"		\
-				--arg		year			"${metadata["DATE"]:-}"			\
-				--argjson	sample_rate		"${metadata["sample_rate"]:-null}"	\
-				--argjson	bit_rate		"${metadata["bit_rate"]:-null}"		\
-				--argjson	bits_per_sample	"${metadata["bits_per_raw_sample"]:-null}"	\
-				'{genre: $genre, artist: $artist, album: $album, track: $track, duration: $duration, year: $year, sample_rate: $sample_rate, bit_rate: $bit_rate, bits_per_sample: $bits_per_sample} | with_entries(select(.value != ""))')
+	#	if [[ "$INCLUDE_METADATA" == true ]]; then
+	#		json_object2=$(jq -n \
+	#			--arg		genre			"${metadata["GENRE"]:-}"		\
+	#			--arg		artist			"${metadata["ARTIST"]:-}"		\
+	#			--arg		album			"${metadata["ALBUM"]:-}"		\
+	#			--arg		track			"${metadata["track"]:-}"		\
+	#			--argjson	duration		"${metadata["duration"]:-null}"		\
+	#			--arg		year			"${metadata["DATE"]:-}"			\
+	#			--argjson	sample_rate		"${metadata["sample_rate"]:-null}"	\
+	#			--argjson	bit_rate		"${metadata["bit_rate"]:-null}"		\
+	#			--argjson	bits_per_sample	"${metadata["bits_per_raw_sample"]:-null}"	\
+	#			'{genre: $genre, artist: $artist, album: $album, track: $track, duration: $duration, year: $year, sample_rate: $sample_rate, bit_rate: $bit_rate, bits_per_sample: $bits_per_sample} | with_entries(select(.value != ""))')
 
-				json_object3=$(jq -n --argjson base "$json_object1" --argjson metadata "$json_object2" '$base * $metadata')
-				printf '%s\n' "${json_object3[@]}" | jq -s '.'
-		else
-			printf '%s\n' "${json_object1[@]}" | jq -s '.'
-		fi
-	fi
+	#			json_object3=$(jq -n --argjson base "$json_object1" --argjson metadata "$json_object2" '$base * $metadata')
+	#			printf '%s\n' "${json_object3[@]}" | jq -s '.'
+	#	else
+	#		printf '%s\n' "${json_object1[@]}" | jq -s '.'
+	#	fi
+	#fi
+
+	json_object="$(jq -n \
+		--argjson 	id					"$i"									\
+		--arg		path				"$(dirname "$(realpath "$file")")"		\
+		--arg		file				"$(basename "$file")"					\
+		--argjson	left_peak_dB		"${channel_stats["1:Peak level dB"]:-null}"	\
+		--argjson	left_noise_dB		"${channel_stats["1:Noise floor dB"]:-null}"	\
+		--argjson	left_crest_dB		"${channel_stats["1:Crest factor"]:-null}"	\
+		--argjson	right_peak_dB		"${channel_stats["2:Peak level dB"]:-null}"	\
+		--argjson	right_noise_dB		"${channel_stats["2:Noise floor dB"]:-null}"	\
+		--argjson	right_crest_dB		"${channel_stats["2:Crest factor"]:-null}"	\
+		--argjson	average_phase		"${average_phase:-null}"						\
+		--argjson	integrated_loudness	"${loudness_stats[0]:-null}"					\
+		--argjson 	true_peak_dBTP		"${loudness_stats[1]:-null}"					\
+		--argjson	loudness_range_LU	"${loudness_stats[2]:-null}"					\
+		--arg		genre				"${metadata["GENRE"]:-}"		\
+		--arg		artist				"${metadata["ARTIST"]:-}"		\
+		--arg		album				"${metadata["ALBUM"]:-}"		\
+		--arg		track				"${metadata["track"]:-}"		\
+		--argjson	duration			"${metadata["duration"]:-null}"		\
+		--arg		year				"${metadata["DATE"]:-}"			\
+		--argjson	sample_rate			"${metadata["sample_rate"]:-null}"	\
+		--argjson	bit_rate			"${metadata["bit_rate"]:-null}"		\
+		--argjson	bits_per_sample		"${metadata["bits_per_raw_sample"]:-null}"	\
+		'{id: $id, path: $path, file: $file, left_peak_dB: $left_peak_dB, left_noise_dB: $left_noise_dB, left_crest_dB: $left_crest_dB, right_peak_dB: $right_peak_dB, right_noise_dB: $right_noise_dB, right_crest_dB: $right_crest_dB, average_phase: $average_phase, integrated_loudness_LUFS: $integrated_loudness, true_peak_dBTP: $true_peak_dBTP, loudness_range_LU: $loudness_range_LU, genre: $genre, artist: $artist, album: $album, track: $track, duration: $duration, year: $year, sample_rate: $sample_rate, bit_rate: $bit_rate, bits_per_sample: $bits_per_sample} | with_entries(select(.value != "" and .value != null))')"
+
+	printf '%s\n' "$json_object"
 }
 
 #
@@ -502,12 +530,18 @@ for positional in "${POSITIONAL[@]}"; do
 		debug "${#FILES[@]} files found for $positional: $(printf '\n%s' "${FILES[@]}")"
 	fi
 	i=1
-	#[[ "$JSON_OUTPUT" == "true" ]] && JSON_REPORT="["
+	report=""
 	for file in "${FILES[@]}"; do
-		generate_report "$file"
+		if [[ "$JSON_OUTPUT" == "true" ]]; then
+			JSON_REPORT+=("$(generate_report "$file")")
+		else
+			report+=$(generate_report "$file")
+		fi
 		((i++))
 	done
-	#if [[ "$JSON_OUTPUT" == "true" ]]; then
-	#	echo "$JSON_REPORT" | sed '$ s/,$/]/' | jq "."
-	#fi
+	if [[ "${JSON_OUTPUT:-false}" == true ]]; then
+		printf '%s\n' "${JSON_REPORT[@]}" | jq -s '.'
+	else
+		echo "$report"
+	fi
 done
