@@ -34,7 +34,7 @@ This tool fills that gap by providing:
 - Stereo correlation (phase)
 - Loudness (EBU R128: LUFS, LRA, true peak)
 - Metadata: genre, artist, album, track, duration, year, sample rate, average bit rate, and bits per sample can be displayed. recording-analyzer uses the metadata already in the file, it does not perform metadata lookups.
-- File formats supported: aac, ac3, aif, aiff, amr, caf, flac, m4a, mp3, ogg, opus, pcm, wav, wma
+- File formats supported: aac, ac3, aif, aiff, amr, caf, dsf, dff, flac, m4a, mp3, ogg, opus, pcm, wav, wma
 
 ## ✅ Requirements
 
@@ -46,12 +46,12 @@ sudo apt install ffmpeg jq
 
 ## 📦 Installation
 
-Cut-n-paste from <https://raw.githubusercontent.com/mcochris/Recording-analyzer/refs/heads/main/recording-analyzer.sh>
+Cut-n-paste from <https://raw.githubusercontent.com/mcochris/Recording-analyzer/refs/heads/main/reca.sh>
 
 or
 
 ```bash
-curl --remote-name https://raw.githubusercontent.com/mcochris/Recording-analyzer/main/recording-analyzer.sh
+curl --remote-name https://raw.githubusercontent.com/mcochris/Recording-analyzer/main/reca.sh
 ```
 
 or
@@ -61,19 +61,19 @@ git clone https://github.com/mcochris/Recording-analyzer.git
 cd Recording-analyzer
 ```
 
-then copy recording-analyzer.sh to a directory in your $PATH to make the program executable from anywhere. Example:
+then copy reca.sh to a directory in your $PATH to make the program executable from anywhere. Example:
 
 ```bash
-sudo cp recording-analyzer.sh /usr/local/bin
-sudo chown $(id -un):$(id -gn) /usr/local/bin/recording-analyzer.sh # make you the file owner
-chmod +x /usr/local/bin/recording-analyzer.sh # make it executable
+sudo cp reca.sh /usr/local/bin
+sudo chown $(id -un):$(id -gn) /usr/local/bin/reca.sh # make you the file owner
+chmod +x /usr/local/bin/reca.sh # make it executable
 hash -r #refresh shell's command cache
 ```
 
 ## ▶️ Usage
 
 ```bash
-recording-analyzer.sh <audio_file>
+reca.sh <audio_file>
 ```
 
 ## 🔁 Batch Processing Examples
@@ -81,37 +81,37 @@ recording-analyzer.sh <audio_file>
 Analyze every music file in the Music directory:
 
 ```bash
-recording-analyzer.sh "/home/user/Music"
+reca.sh "/home/user/Music"
 ```
 
 Analyze every music file in the Music directory, including all its subdirectories:
 
 ```bash
-recording-analyzer.sh --recurse "/home/user/Music"
+reca.sh --recurse "/home/user/Music"
 ```
 
 Analyze every music file in the Music directory and get each file's metadata:
 
 ```bash
-recording-analyzer.sh --metadata "/home/user/Music"
+reca.sh --metadata "/home/user/Music"
 ```
 
 Analyze every music file in the Music directory and capture the JSON results in a file. You can import the JSON file into your spreadsheet program, or upload the JSON file to <https://recording-analyzer.mcochris.com/> to see your data in spreadsheet format, download the spreadsheet of your data, and create custom playlists:
 
 ```bash
-recording-analyzer.sh --metadata --json "/home/user/Music" > mydata.json
+reca.sh --metadata --json "/home/user/Music" > mydata.json
 ```
 
 Command line options can be combined:
 
 ```bash
-recording-analyzer.sh --metadata --json --recurse "/home/user/Music"
+reca.sh --metadata --json --recurse "/home/user/Music"
 ```
 
 ## 🖥️ Example Output
 
 ```text
-chris@studio:~/audio$ recording-analyzer.sh "Computer World.flac"
+chris@studio:~/audio$ reca.sh "Computer World.flac"
 
 Audio Analysis: "Computer World.flac"
 =====================================
@@ -138,7 +138,7 @@ Loudness (EBU R128):
 ## 🖥️ Example Output with metadata
 
 ```text
-chris@studio:~/audio$ recording-analyzer.sh --metadata "The Things We Do for Love.flac"
+chris@studio:~/audio$ reca.sh --metadata "The Things We Do for Love.flac"
 
 Audio Analysis: "The Things We Do for Love.flac"
 ================================================
