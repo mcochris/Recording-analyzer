@@ -84,7 +84,7 @@ function error_log() {
 #
 function cleanup() {
 	tput cnorm 1>&2
-	cat "$ERROR_LOG"
+	sort --unique "$ERROR_LOG" >&2
 	rm -f "$ERROR_LOG"
 	rm -f "$RESULTS_FILE"
 }
@@ -609,11 +609,11 @@ function generate_report() {
 	debug "JSON_OUTPUT: $JSON_OUTPUT, INCLUDE_METADATA: $INCLUDE_METADATA"
 
 	if [[ "$JSON_OUTPUT" == "false" ]]; then
-		echo " "
+		echo ""
 		text="Recording Analysis: \"$(basename "$file")\""
 		echo "$text"
 		printf '🭶%.0s' $(seq 1 ${#text})
-		echo " "
+		echo ""
 
 		if [[ "$INCLUDE_METADATA" == true ]]; then
 			echo "Metadata:"
@@ -645,7 +645,6 @@ function generate_report() {
 		echo "  Integrated loudness:  ${loudness_stats[0]} LUFS"
 		echo "  True peak:            ${loudness_stats[1]} dBTP"
 		echo "  Loudness range:       ${loudness_stats[2]} LU"
-		echo " "
 	fi
 
 	if [[ "$JSON_OUTPUT" == "true" ]]; then
@@ -705,7 +704,7 @@ for positional in "${POSITIONAL[@]}"; do
 			if [[ "$JSON_OUTPUT" == "true" ]]; then
 				JSON_REPORT+=("$(cat "$RESULTS_FILE")")
 			else
-				TEXT_REPORT+=$(cat "$RESULTS_FILE")
+				TEXT_REPORT+="$(cat "$RESULTS_FILE")"$'\n'
 			fi
 		else
 			error_log "ERROR: failed to process \"$file\", task exited with status $task_status"
