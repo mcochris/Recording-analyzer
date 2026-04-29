@@ -677,6 +677,7 @@ function generate_report() {
 	fi
 }
 
+
 #
 # Main script logic
 #
@@ -695,11 +696,19 @@ for positional in "${POSITIONAL[@]}"; do
 	TEXT_REPORT=""
 	JSON_REPORT=()
 	for file in "${FILES[@]}"; do
+
+		# Prepend a metadata true/false record to the JSON_REPORT for later use on the web site
+		if [[ "$JSON_OUTPUT" == true && $i -eq 1 ]]; then
+			echo "{\"metadata\": $INCLUDE_METADATA}" > "$RESULTS_FILE" 2>> "$ERROR_LOG"
+			JSON_REPORT+=("$(cat "$RESULTS_FILE")")
+		fi
+
 		generate_report "$file" "$i" > "$RESULTS_FILE" 2>> "$ERROR_LOG" &
 		TASK_PID=$!
 		[[ "$QUIET" == "false" ]] && spinner $TASK_PID "Processing file $i of ${#FILES[@]}: \"$(basename "$file")\""
 		wait $TASK_PID
 		task_status=$?
+
 		if [[ $task_status -eq 0 ]]; then
 			if [[ "$JSON_OUTPUT" == "true" ]]; then
 				JSON_REPORT+=("$(cat "$RESULTS_FILE")")
