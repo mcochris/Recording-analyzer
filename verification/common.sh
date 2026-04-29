@@ -13,7 +13,7 @@ set -o errtrace
 trap 'echo "ERROR: line $LINENO command \"$BASH_COMMAND\" exited with status $?" >&2' ERR
 
 # shellcheck disable=SC2034
-readonly RECORDING_ANALYZER_PROGRAM="../recording-analyzer.sh"
+readonly RECORDING_ANALYZER_PROGRAM="../reca.sh"
 
 #
 # Set up a custom temporary directory for the tests to avoid conflicts with other processes.
