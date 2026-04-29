@@ -1,6 +1,6 @@
 # How to access Network Attached Storage (NAS)
 
-These instructions tell you how to mount your NAS so that recording-analyzer.sh can access those files. These instructions apply to both Windows computers (with WSL installed) and Linux computers.
+These instructions tell you how to mount your NAS so that reca.sh can access those files. These instructions apply to both Windows computers (with WSL installed) and Linux computers.
 
 ## Step 1, install the CIFS (Common Internet File System) utility
 

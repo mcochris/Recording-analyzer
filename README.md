@@ -44,6 +44,8 @@ The BASH shell, ffmpeg, and jq programs must be available on your computer. On U
 sudo apt install ffmpeg jq
 ```
 
+Bash is already installed on most Linux systems.
+
 ## 📦 Installation
 
 Cut-n-paste from <https://raw.githubusercontent.com/mcochris/Recording-analyzer/refs/heads/main/reca.sh>
@@ -108,14 +110,27 @@ Command line options can be combined:
 reca.sh --metadata --json --recurse "/home/user/Music"
 ```
 
+## 📢 Command line options
+
+```text
+-d, --debug       Enable debug mode to show detailed processing information
+-e, --extensions  Specify a custom list of audio file extensions to analyze, e.g. -e "m4a flac"
+-h, --help        Show a help message and exit
+-j, --json        Output results in JSON format (default: human-readable text)
+-l, --limit N     Limit processing to the first N audio files found (default: no limit)
+-m, --metadata    Include metadata fields in output
+-q, --quiet       Suppress progress spinner and other non-essential output
+-r, --recurse     Recursively search directories for audio files
+-v, --version     Show program version and exit
+```
+
 ## 🖥️ Example Output
 
 ```text
 chris@studio:~/audio$ reca.sh "Computer World.flac"
 
 Audio Analysis: "Computer World.flac"
-=====================================
-
+🭶🭶🭶🭶🭶🭶🭶🭶🭶🭶🭶🭶🭶🭶🭶🭶🭶🭶🭶🭶🭶🭶🭶
 Left Channel:
   Peak Level:     -0.50 dBFS
   Noise Floor:    -inf dBFS
@@ -141,8 +156,7 @@ Loudness (EBU R128):
 chris@studio:~/audio$ reca.sh --metadata "The Things We Do for Love.flac"
 
 Audio Analysis: "The Things We Do for Love.flac"
-================================================
-
+🭶🭶🭶🭶🭶🭶🭶🭶🭶🭶🭶🭶🭶🭶🭶🭶🭶🭶🭶🭶🭶🭶🭶🭶🭶🭶🭶🭶🭶🭶
 Metadata:
   Genre:           Rock
   Artist:          10cc
