@@ -48,34 +48,33 @@ Bash is already installed on most Linux systems.
 
 ## 📦 Installation
 
+In these examples we assume that the directory $HOME/.local/bin exists and is in your $PATH. This is usually the case on most linux systems. Adjust as needed.
+
 Cut-n-paste from <https://raw.githubusercontent.com/mcochris/Recording-analyzer/refs/heads/main/reca.sh>
+to $HOME/.local/bin/reca.sh
 
 or
 
 ```bash
+cd $HOME/.local/bin
 curl --remote-name https://raw.githubusercontent.com/mcochris/Recording-analyzer/main/reca.sh
 ```
 
-or
+or if your familiar with the git version control system:
 
 ```bash
-git clone https://github.com/mcochris/Recording-analyzer.git
-cd Recording-analyzer
-```
-
-then copy reca.sh to a directory in your $PATH to make the program executable from anywhere. Example:
-
-```bash
-sudo cp reca.sh /usr/local/bin
-sudo chown $(id -un):$(id -gn) /usr/local/bin/reca.sh # make you the file owner
-chmod +x /usr/local/bin/reca.sh # make it executable
-hash -r #refresh shell's command cache
+cd $HOME
+git clone --depth 1 https://github.com/mcochris/Recording-analyzer.git
+cd $HOME/.local/bin
+ln -s $HOME/Recording-analyzer/reca.sh .
 ```
 
 ## ▶️ Usage
 
+**NOTE:** It's important to wrap your file/directory names in double quotes to prevent Bash from expanding your entry prior to invoking reca.sh
+
 ```bash
-reca.sh <audio_file>
+reca.sh "<audio_file>"
 ```
 
 ## 🔁 Batch Processing Examples
