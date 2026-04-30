@@ -84,9 +84,12 @@ function error_log() {
 #
 function cleanup() {
 	tput cnorm 1>&2
-	sort --unique "$ERROR_LOG" >&2
-	rm -f "$ERROR_LOG"
-	rm -f "$RESULTS_FILE"
+	if [[ -s "$ERROR_LOG" ]]; then
+		echo -e "\nErrors encountered during processing:" >&2
+		cat "$ERROR_LOG" >&2
+	fi
+	rm --force "$ERROR_LOG"
+	rm --force "$RESULTS_FILE"
 }
 
 #
@@ -162,6 +165,28 @@ Options:
 	Questions, issues, suggestions? Please open a support ticket at:
 	https://github.com/mcochris/Recording-analyzer/issues
 "
+
+#
+# Validate that the provided extension is in the list of supported audio formats.
+#
+function is_extension_valid() {
+	local ext="$1"
+	[[ -z "$ext" ]] && return 1
+	in_array "$ext" "${DEFAULT_EXTENSIONS[@]}" && return 0
+	return 1
+}
+
+#
+# Validate all extensions in the users --extensions option.
+#
+function validate_extensions() {
+	local ext
+	for ext in "${EXTENSIONS[@]}"; do
+		if ! is_extension_valid "$ext"; then
+			error_log "ERROR: unrecognized extension: $ext"
+		fi
+	done
+}
 
 #
 # Loop through options and arguments, handling known flags and collecting positional arguments for file processing.
@@ -272,7 +297,7 @@ check_for_update() {
 				printf "\r%s\033[K\n" "Checking for updates failed" 1>&2
 				tput cnorm 1>&2
 			fi
-			return $LINENO
+			return 1
 		}
 
 	if [[ -z "$remote" ]]; then
@@ -280,7 +305,7 @@ check_for_update() {
 			printf "\r%s\033[K\n" "Checking for updates failed" 1>&2
 			tput cnorm 1>&2
 		fi
-		return $LINENO
+		return 1
 	fi
 
 	if [[ "${remote#v}" != "${VERSION#v}" ]]; then
@@ -288,7 +313,7 @@ check_for_update() {
 			printf "\r%s\033[K\n" "Update available: $remote (you have $VERSION)" 1>&2
 			echo "Update: curl --remote-name https://raw.githubusercontent.com/mcochris/Recording-analyzer/main/reca.sh" 1>&2
 		fi
-		return $LINENO
+		return 1
   	fi
 
 	tput cnorm 1>&2
@@ -304,30 +329,7 @@ function in_array() {
 	for item in "$@"; do
 		[[ "$item" == "$needle" ]] && return 0
 	done
-	return $LINENO
-}
-
-#
-# Validate that the provided extension is in the list of supported audio formats.
-#
-function is_extension_valid() {
-	local ext="$1"
-	[[ -z "$ext" ]] && return $LINENO
-	in_array "$ext" "${DEFAULT_EXTENSIONS[@]}" && return 0
-	return $LINENO
-}
-
-#
-# Validate all extensions in the users --extensions option.
-#
-function validate_extensions() {
-	local ext
-	for ext in "${EXTENSIONS[@]}"; do
-		if ! is_extension_valid "$ext"; then
-			error_log "Error: unrecognized extension: $ext"
-			exit $LINENO
-		fi
-	done
+	return 1
 }
 
 #
@@ -381,18 +383,18 @@ function get_channel_stats() {
 
 	local ASTATS
 	ASTATS=$(ffmpeg -hide_banner -i "$file" -af "astats" -f null - 2>&1) \
-		|| { error_log "ERROR: ffmpeg failed to process \"$file\""; failed; return $LINENO;}
+		|| { error_log "ERROR: ffmpeg failed to process \"$file\""; failed; return 1;}
 	readonly ASTATS
 
 	# Detect number of channels.
 	_num_channels=$(grep --count "Channel: [0-9]" <<< "$ASTATS") \
-		|| { error_log "ERROR: failed to detect number of channels in \"$file\""; failed; return $LINENO;}
+		|| { error_log "ERROR: failed to detect number of channels in \"$file\""; failed; return 1;}
 
 	debug "Detected $_num_channels channels in \"$file\""
 
 	_num_channels=$(integerize "$_num_channels")
 	[[ -z "$_num_channels" || "$_num_channels" -le 0 ]] \
-		&& { error_log "ERROR: invalid number of channels detected in \"$file\""; failed; return $LINENO; }
+		&& { error_log "ERROR: invalid number of channels detected in \"$file\""; failed; return 1; }
 
 	local channel
 	for channel in 1 2; do
@@ -421,10 +423,10 @@ function get_loudness() {
 	local -n _loudness_stats="$2"
 	local loudness integrated_loudness true_peak loudness_range
 
-	[[ -z "$file" ]] && { error_log "ERROR: get_loudness requires a file"; return $LINENO; }
+	[[ -z "$file" ]] && { error_log "ERROR: get_loudness requires a file"; return 1; }
 
 	loudness=$(ffmpeg -hide_banner -i "$file" -af loudnorm=print_format=json -f null - 2>&1 | awk '/^{/,/^}/') \
-		|| { error_log "ERROR: ffmpeg failed to run loudnorm on \"$file\""; return $LINENO; }
+		|| { error_log "ERROR: ffmpeg failed to run loudnorm on \"$file\""; return 1; }
 
 	integrated_loudness=$(echo "$loudness" | grep "input_i" | cut -d: -f2 | tr -d '":, ')
 	true_peak=$(echo "$loudness" | grep "input_tp" | cut -d: -f2 | tr -d '":, ')
@@ -442,7 +444,7 @@ function get_average_phase() {
 	local file="$1"
 	local average_phase
 
-	[[ -z "$file" ]] && { error_log "ERROR: get_average_phase requires a file"; return $LINENO; }
+	[[ -z "$file" ]] && { error_log "ERROR: get_average_phase requires a file"; return 1; }
 
 	average_phase=$(ffmpeg -hide_banner -i "$file" -af "aphasemeter=video=0,ametadata=print:file=-" -f null - 2> /dev/null \
 		| grep 'lavfi.aphasemeter.phase' \
@@ -460,11 +462,11 @@ function get_metadata() {
 	local file="$1"
 	local -n _metadata="$2"
 
-	[[ -z "$file" ]] && { error_log "ERROR: get_metadata requires a filename"; return $LINENO; }
+	[[ -z "$file" ]] && { error_log "ERROR: get_metadata requires a filename"; return 1; }
 
 	local FFPROBE
 	FFPROBE=$(ffprobe -v quiet -print_format json -show_format -show_streams "$file" 2>&1) \
-		|| { error_log "ERROR: ffprobe failed to process \"$file\""; return $LINENO; }
+		|| { error_log "ERROR: ffprobe failed to process \"$file\""; return 1; }
 	readonly FFPROBE
 
 	for field in "GENRE" "ARTIST" "ALBUM" "track" "DATE"; do
@@ -505,14 +507,13 @@ function create_find_parameters() {
 
 		if [[ -f "$dir/$base" ]]; then
 			debug "no search needed for: $dir/$base"
-			exit 0
 		elif [[ -z "$base" ]]; then
 			debug "search for audio files in directory: $dir"
 		else
 			local base_ext="${base##*.}"
 			if ! is_extension_valid "$base_ext"; then
-				error_log "Error: unrecognized extension in filename: $base"
-				exit $LINENO
+				error_log "ERROR: unrecognized extension \"$base_ext\" in filename: \"$dir/$base\""
+				return 1
 			fi
 		fi
 
@@ -592,27 +593,50 @@ function generate_report() {
 
 	debug "Generating report for file: $file"
 
-	[[ -f "$file" && -r "$file" && -s "$file" ]] \
-		|| { error_log "ERROR: file not found, not readable, or empty: \"$file\""; return $LINENO; }
+	if [[ -r "$file" && -s "$file" ]]; then
+		debug "File \"$file\" is readable and not empty"
+	else
+		error_log "ERROR: file not readable, or is empty: \"$file\""
+		return
+	fi
 
-	get_channel_stats "$file" channel_stats num_channels \
-		|| { error_log "ERROR: failed to get astats for \"$file\""; return $LINENO; }
+	if get_channel_stats "$file" channel_stats num_channels; then
+		debug "Successfully retrieved channel stats for \"$file\""
+	else
+		error_log "ERROR: failed to get channel stats for \"$file\""
+		return
+	fi
 
 	[[ "$num_channels" -gt 2 ]] && error_log "WARNING: more than 2 channels detected in \"$file\"; only processing first 2 channels"
 
-	average_phase=$(get_average_phase "$file") || { error_log "ERROR: failed to get stereo phase for \"$file\""; return $LINENO; }
+	if average_phase=$(get_average_phase "$file"); then
+		debug "Successfully retrieved average phase for \"$file\""
+	else
+		error_log "ERROR: failed to get stereo phase for \"$file\""
+		return
+	fi
 
-	get_loudness "$file" loudness_stats || { error_log "ERROR: failed to get loudness for \"$file\""; return $LINENO; }
+	if get_loudness "$file" loudness_stats; then
+		debug "Successfully retrieved loudness stats for \"$file\""
+	else
+		error_log "ERROR: failed to get loudness for \"$file\""
+		return
+	fi
 
 	if [[ "$INCLUDE_METADATA" == true ]]; then
-		get_metadata "$file" metadata || { error_log "ERROR: failed to get metadata for \"$file\""; return $LINENO; }
+		if get_metadata "$file" metadata; then
+			debug "Successfully retrieved metadata for \"$file\""
+		else
+			error_log "ERROR: failed to get metadata for \"$file\""
+			return
+		fi
 	fi
 
 	debug "Channel stats for \"$file\": ${channel_stats[*]}"
 	debug "Average phase for \"$file\": $average_phase"
 	debug "Loudness stats for \"$file\": ${loudness_stats[*]}"
-	debug "Metadata for \"$file\": ${metadata[*]}"
-	debug "JSON_OUTPUT: $JSON_OUTPUT, INCLUDE_METADATA: $INCLUDE_METADATA"
+	[[ "$INCLUDE_METADATA" == true ]] && debug "Metadata for \"$file\": ${metadata[*]}"
+	[[ "$JSON_OUTPUT" == "true" ]] && debug "JSON_OUTPUT: $JSON_OUTPUT"
 
 	if [[ "$JSON_OUTPUT" == "false" ]]; then
 		echo ""
@@ -688,7 +712,10 @@ function generate_report() {
 #
 for positional in "${POSITIONAL[@]}"; do
 	debug "Positional argument: $positional"
+
 	readarray -t find_parameters < <(create_find_parameters "$positional")
+	[[ ! ${find_parameters[*]} ]] && continue
+
 	debug "Find parameters: ${find_parameters[*]}"
 	if [[ ${#find_parameters[@]} -ne 2 ]]; then
 		FILES=("$positional")
@@ -702,7 +729,7 @@ for positional in "${POSITIONAL[@]}"; do
 	JSON_REPORT=()
 	for file in "${FILES[@]}"; do
 
-		# Prepend a metadata true/false record to the JSON_REPORT for later use on the web site
+		# Prepend a metadata=true record to the JSON_REPORT for later use on the web site
 		if [[ "$JSON_OUTPUT" == true && "$INCLUDE_METADATA" == true && $i -eq 1 ]]; then
 			echo "{\"metadata\": true}" > "$RESULTS_FILE" 2>> "$ERROR_LOG"
 			JSON_REPORT+=("$(cat "$RESULTS_FILE")")
@@ -712,17 +739,17 @@ for positional in "${POSITIONAL[@]}"; do
 		TASK_PID=$!
 		[[ "$QUIET" == "false" ]] && spinner $TASK_PID "Processing file $i of ${#FILES[@]}: \"$(basename "$file")\""
 		wait $TASK_PID
-		task_status=$?
+		#task_status=$?
 
-		if [[ $task_status -eq 0 ]]; then
+		#if [[ $task_status -eq 0 ]]; then
 			if [[ "$JSON_OUTPUT" == "true" ]]; then
 				JSON_REPORT+=("$(cat "$RESULTS_FILE")")
 			else
 				TEXT_REPORT+="$(cat "$RESULTS_FILE")"$'\n'
 			fi
-		else
-			error_log "ERROR: failed to process \"$file\", task exited with status $task_status"
-		fi
+		#else
+		#	error_log "ERROR: failed to process \"$file\", task exited with status $task_status"
+		#fi
 		((i++))
 	done
 
