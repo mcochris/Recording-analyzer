@@ -38,9 +38,10 @@ This tool fills that gap by providing:
 
 ## ✅ Requirements
 
-The BASH shell, ffmpeg, and jq programs must be available on your computer. On Ubuntu linux, you can install them via:
+The BASH shell (version 4.3 or greater), ffmpeg (version 5 or greater), and jq (version 1.7 or greater) programs must be available on your computer. On Ubuntu linux, you can install them via:
 
 ```shell
+sudo apt update
 sudo apt install ffmpeg jq
 ```
 
@@ -60,7 +61,7 @@ cd $HOME/.local/bin
 curl --remote-name https://raw.githubusercontent.com/mcochris/Recording-analyzer/main/reca.sh
 ```
 
-or if your familiar with the git version control system:
+or if you're familiar with the git version control system:
 
 ```bash
 cd $HOME
@@ -88,13 +89,13 @@ reca.sh "/home/user/Music"
 Analyze every music file in the Music directory, including all its subdirectories:
 
 ```bash
-reca.sh --recurse "/home/user/Music"
+reca.sh --recurse "~/Music"
 ```
 
 Analyze every music file in the Music directory and get each file's metadata:
 
 ```bash
-reca.sh --metadata "/home/user/Music"
+reca.sh --metadata "$HOME/Music"
 ```
 
 Analyze every music file in the Music directory and capture the JSON results in a file. You can import the JSON file into your spreadsheet program, or upload the JSON file to <https://recording-analyzer.mcochris.com/> to see your data in spreadsheet format, download the spreadsheet of your data, and create custom playlists:
