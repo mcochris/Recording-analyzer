@@ -101,8 +101,11 @@ trap cleanup EXIT
 #
 THIS_PGM=$(basename "$0")
 readonly THIS_PGM
+
+#
 # Check if at least one argument is provided, otherwise show usage and exit.
-[[ $# -eq 0 ]] && { echo "Usage: $THIS_PGM <audio_file>"; exit $LINENO; }
+#
+[[ $# -eq 0 ]] && { echo "Usage: $THIS_PGM \"<audio_file>\""; exit $LINENO; }
 
 readonly HELP="
 ╭──────────────────────────────────────────────────────────────────────────────╮
@@ -112,9 +115,9 @@ readonly HELP="
 ╰──────────────────────────────────────────────────────────────────────────────╯
 
 Usage:
-	$THIS_PGM <audio_file> ...
+	$THIS_PGM \"<audio_file>\" ...
 	- or -
-	$THIS_PGM <directory> ...
+	$THIS_PGM \"<directory>\" ...
 
 This program is used to analyze audio files and extract various statistics.
 The script provides insights into the quality and characteristics of the
@@ -141,13 +144,13 @@ Options:
 
   Examples:
 	# Analyze a single file with human-readable output
-	$THIS_PGM ~/Music/track.flac
+	$THIS_PGM \"~/Music/track.flac\"
 
 	# Analyze all music files in a directory recursively
-	$THIS_PGM --recurse ~/Music
+	$THIS_PGM --recurse \"~/Music\"
 
 	# Analyze files and directories with metadata included
-	$THIS_PGM --metadata ~/Music/track.flac ../song.mp3 /mnt/nas/audio/album/
+	$THIS_PGM --metadata \"~/Music/track.flac\" \"../song.mp3\" \"/mnt/nas/audio/album/\"
 
 	# Analyze music files and redirect JSON output to a file for use with the web
 	# page at https://recording-analyzer.mcochris.com/
@@ -229,6 +232,9 @@ while [[ $# -gt 0 ]]; do
 	esac
 done
 
+#
+# If no positional arguments were collected, show usage and exit.
+#
 if ((${#POSITIONAL[@]} == 0)); then
 	echo "$HELP" >&2
 	exit $LINENO
@@ -677,7 +683,6 @@ function generate_report() {
 	fi
 }
 
-
 #
 # Main script logic
 #
@@ -698,8 +703,8 @@ for positional in "${POSITIONAL[@]}"; do
 	for file in "${FILES[@]}"; do
 
 		# Prepend a metadata true/false record to the JSON_REPORT for later use on the web site
-		if [[ "$JSON_OUTPUT" == true && $i -eq 1 ]]; then
-			echo "{\"metadata\": $INCLUDE_METADATA}" > "$RESULTS_FILE" 2>> "$ERROR_LOG"
+		if [[ "$JSON_OUTPUT" == true && "$INCLUDE_METADATA" == true && $i -eq 1 ]]; then
+			echo "{\"metadata\": true}" > "$RESULTS_FILE" 2>> "$ERROR_LOG"
 			JSON_REPORT+=("$(cat "$RESULTS_FILE")")
 		fi
 
