@@ -34,7 +34,7 @@ This tool fills that gap by providing:
 - Stereo correlation (phase)
 - Loudness (EBU R128: LUFS, LRA, true peak)
 - Metadata: genre, artist, album, track, duration, year, sample rate, average bit rate, and bits per sample can be displayed. recording-analyzer uses the metadata already in the file, it does not perform metadata lookups.
-- File formats supported: aac, ac3, aif, aiff, amr, caf, dsf, dff, flac, m4a, mp3, ogg, opus, pcm, wav, wma
+- File formats supported: aac, ac3, aif, aiff, amr, caf, flac, m4a, mp3, ogg, opus, pcm, wav, wma
 
 ## ✅ Requirements
 
