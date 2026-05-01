@@ -90,38 +90,40 @@ function validate_extensions() {
 #
 # Check for updates by fetching the latest version string from the GitHub repository.
 #
-function check_for_update() {
-	tput civis 1>&2
-	local remote
+check_for_update() {
+    local latest_version
 
-	remote=$(curl --silent --fail --max-time 3 \
-		"https://api.github.com/repos/mcochris/Recording-analyzer/releases/latest" \
-		| grep '"tag_name":' | head -1 | cut -d'"' -f4) || \
-		{	if [[ "$QUIET" == "false" ]]; then
-				printf "\r%s\033[K\n" "Checking for updates failed" 1>&2
-				tput cnorm 1>&2
-			fi
-			return 1
-		}
+    if [[ -f "$CACHE_FILE" ]]; then
+        local last_check
+        last_check=$(stat -c %Y "$CACHE_FILE")
+        local now
+        now=$(date +%s)
+        if (( now - last_check < CACHE_TTL )); then
+            return   # Cache is fresh — skip everything
+        fi
+    fi
 
-	if [[ -z "$remote" ]]; then
-		if [[ "$QUIET" = "false" ]]; then
-			printf "\r%s\033[K\n" "Checking for updates failed" 1>&2
-			tput cnorm 1>&2
-		fi
-		return 1
-	fi
+    # Cache is stale or missing — fetch and notify
+    latest_version=$(curl --fail --silent --show-error --location \
+        "https://api.github.com/repos/mcochris/Recording-analyzer/releases/latest" \
+        | grep '"tag_name"' \
+        | sed 's/.*"tag_name": *"\(.*\)".*/\1/')
 
-	if [[ "${remote#v}" != "${VERSION#v}" ]]; then
-		if [[ "$QUIET" == "false" ]]; then
-			printf "\r%s\033[K\n" "Update available: $remote (you have $VERSION)" 1>&2
-			echo "Update: curl --remote-name https://raw.githubusercontent.com/mcochris/Recording-analyzer/main/reca.sh" 1>&2
-		fi
-		return 1
-  	fi
+    if [[ -n "$latest_version" ]]; then
+        mkdir -p "$(dirname "$CACHE_FILE")"
+        echo "$latest_version" > "$CACHE_FILE"
+        compare_versions "$latest_version"
+    else
+        touch "$CACHE_FILE"  # suppress retries on failure
+    fi
+}
 
-	tput cnorm 1>&2
-	return 0
+function compare_versions() {
+    local latest="$1"
+    if [[ "$latest" != "$CURRENT_VERSION" ]]; then
+        echo "Update available: $latest (you have $CURRENT_VERSION)"
+        echo "https://github.com/mcochris/Recording-analyzer/releases/latest"
+    fi
 }
 
 #
@@ -278,34 +280,42 @@ function get_metadata() {
 # Create the parameters for the find command based on the provided arguments, handling directories, files, and patterns.
 #
 function create_find_parameters() {
-		debug "create_find_parameters called with argument: $1"
+		debug "create_find_parameters(): called with argument: $1"
 		local arg="$1" dir base
 		dir=$(dirname "${arg}")
 		base=$(basename "${arg}")
+
+		debug "create_find_parameters(): step 1 - dir set to: \"$dir\", base set to: \"$base\""
 
 		dir=${dir/#~/$HOME}
 		dir=${dir/#./$PWD}
 
 		[[ "$base" == "~" || "$base" == "." || "$base" == "*" ]] && base=""
 
+		debug "create_find_parameters(): step 2 - dir set to: \"$dir\", base set to: \"$base\""
+
 		if [[ -d "$dir/$base" ]]; then
+			debug "create_find_parameters(): \"$dir/$base\" is a directory, treating as search path"
 			dir="$dir/$base"
 			base=""
+		else
+			debug "create_find_parameters(): \"$dir/$base\" is not a directory, treating as file or pattern"
 		fi
 
 		if [[ -f "$dir/$base" ]]; then
-			debug "no search needed for: $dir/$base"
+			debug "create_find_parameters(): no search needed for: $dir/$base"
 		elif [[ -z "$base" ]]; then
-			debug "search for audio files in directory: $dir"
+			debug "create_find_parameters(): search for audio files in directory: $dir"
 		else
 			local base_ext="${base##*.}"
 			if ! is_extension_valid "$base_ext"; then
-				error_log "ERROR: unrecognized extension \"$base_ext\" in filename: \"$dir/$base\""
+				debug "create_find_parameters(): unrecognized or no extension in filename: \"$dir/$base\", returning exit code 1"
+				error_log "ERROR: unrecognized or no extension in filename: \"$dir/$base\""
 				return 1
 			fi
 		fi
 
-		debug "create_find_parameters returning: dir='$dir', base='$base'"
+		debug "create_find_parameters(): returning: dir='$dir', base='$base'"
 
 		local return
 		return=("$dir" "$base")
@@ -316,7 +326,7 @@ function create_find_parameters() {
 # Find files matching the criteria using the find command, with options for recursion and extension filtering.
 #
 function find_files() {
-	debug "find_files called with arguments: $*"
+	debug "find_files(): called with arguments: $*"
 	local dir="$1" base="$2" cmd=() files=()
 
 	cmd=("find" "$dir")
@@ -329,16 +339,22 @@ function find_files() {
 	fi
 	cmd+=("-print")
 
-	debug "Running command: ${cmd[*]}"
+	debug "find_files(): Running command: ${cmd[*]}"
 	readarray -t files < <("${cmd[@]}")
-	debug "Found ${#files[@]} files: $(printf '\n%s' "${files[@]}")"
+	debug "find_files(): Found ${#files[@]} files"
 
 	if [[ "${LIMIT:-0}" -gt 0 && "$LIMIT" -lt ${#files[@]} ]]; then
 		files=("${files[@]:0:$LIMIT}")
-		debug "Limited files to ${#files[@]} files: $(printf '\n%s' "${files[@]}")"
+		debug "find_files(): Limited files to ${#files[@]} files based on user-specified limit of $LIMIT"
 	fi
 
-	printf '%s\n' "${files[@]}"
+	if [[ ${#files[@]} -eq 0 ]]; then
+		debug "find_files(): No files found matching criteria in \"$dir\" with base \"$base\""
+		return 1
+	else
+		debug "find_files(): Files found matching criteria in \"$dir\" with base \"$base\": $(printf '\n%s' "${files[@]}")"
+		printf '%s\n' "${files[@]}"
+	fi
 }
 
 #
@@ -514,6 +530,12 @@ set -o pipefail
 set -o errtrace
 
 #
+# Get the program name for usage messages and other references.
+#
+THIS_PGM=$(basename "$0")
+readonly THIS_PGM
+
+#
 # Check for minimum Bash version (4.3 or greater) since we rely on associative arrays and other features not available in older versions.
 #
 if [ -z "$BASH_VERSION" ]; then
@@ -536,8 +558,10 @@ done
 #
 # The global variables and constants.
 #
-readonly VERSION="1.0.0"
-readonly DEFAULT_EXTENSIONS=(aac ac3 aif aiff amr caf dsf dff flac m4a mp3 ogg opus pcm wav wma)
+CACHE_FILE="${XDG_CACHE_HOME:-$HOME/.cache}/$THIS_PGM/version_check"
+CACHE_TTL=86400
+readonly CURRENT_VERSION="2.0.0"
+readonly CACHE_FILE CACHE_TTL DEFAULT_EXTENSIONS=(aac ac3 aif aiff amr caf dsf dff flac m4a mp3 ogg opus pcm wav wma)
 EXTENSIONS=("${DEFAULT_EXTENSIONS[@]}")
 DEBUG=false
 RECURSE=false
@@ -549,7 +573,7 @@ declare -a JSON_REPORT=()
 TEXT_REPORT=""
 
 #
-# Create temporary file for error logging.
+# Create temporary files for error logging and results.
 #
 ERROR_LOG="$(mktemp)"
 readonly ERROR_LOG
@@ -570,23 +594,18 @@ trap 'echo "Terminated."; cleanup; exit 143' SIGTERM
 trap cleanup EXIT
 
 #
-# Get the program name for usage messages and other references.
-#
-THIS_PGM=$(basename "$0")
-readonly THIS_PGM
-
-#
 # Check if at least one argument is provided, otherwise show usage and exit.
 #
-[[ $# -eq 0 ]] && { echo "Usage: $THIS_PGM \"<audio_file>\""; exit 1; }
+[[ $# -eq 0 ]] && { help; exit 1; }
 
-readonly HELP="
+function help() {
+	echo -e "\e[38;5;214m
 ╭──────────────────────────────────────────────────────────────────────────────╮
 │                                                                              │
 │                        Welcome to Recording Analyzer!                        │
 │                                                                              │
 ╰──────────────────────────────────────────────────────────────────────────────╯
-
+\e[0m
 Usage:
 	$THIS_PGM \"<audio_file>\" ...
 	- or -
@@ -609,7 +628,8 @@ Options:
   -e, --extensions  Specify a custom list of audio file extensions to analyze
   -h, --help        Show this help message and exit
   -j, --json        Output results in JSON format (default: human-readable text)
-  -l, --limit N     Limit processing to the first N audio files found (default: no limit)
+  -l, --limit N     Limit processing to the first N audio files found
+                    (default: no limit)
   -m, --metadata    Include metadata fields in output
   -q, --quiet       Suppress progress spinner and other non-essential output
   -r, --recurse     Recursively search directories for audio files
@@ -623,10 +643,10 @@ Options:
 	$THIS_PGM --recurse \"~/Music\"
 
 	# Analyze files and directories with metadata included
-	$THIS_PGM --metadata \"~/Music/track.flac\" \"../song.mp3\" \"/mnt/nas/audio/album/\"
+	$THIS_PGM --metadata \"~/Music/track.flac\" \"../song.mp3\"
 
-	# Analyze music files and redirect JSON output to a file for use with the web
-	# page at https://recording-analyzer.mcochris.com/
+	# Analyze music files and redirect JSON output to a file for use with
+	#  the web page at https://recording-analyzer.mcochris.com/
 	$THIS_PGM --json --metadata \"~/Music/*.flac\" > analysis_results.json
 
 	For more details, please visit the GitHub repository:
@@ -635,6 +655,7 @@ Options:
 	Questions, issues, suggestions? Please open a support ticket at:
 	https://github.com/mcochris/Recording-analyzer/issues
 "
+}
 
 #
 # Loop through options and arguments, handling known flags and collecting positional arguments for file processing.
@@ -657,7 +678,7 @@ while [[ $# -gt 0 ]]; do
 			shift 2
 			;;
 		-h|--help|-\?)
-			echo "$HELP"
+			help
 			exit 0
 			;;
 		-j|--json)
@@ -695,7 +716,7 @@ while [[ $# -gt 0 ]]; do
 			;;
 		-*)
 			error_log "Error: unknown option: $1"
-			echo "$HELP" >&2
+			help >&2
 			exit 1
 			;;
 		*)
@@ -709,7 +730,7 @@ done
 # If no positional arguments were collected, show usage and exit.
 #
 if ((${#POSITIONAL[@]} == 0)); then
-	echo "$HELP" >&2
+	help >&2
 	exit 1
 fi
 
@@ -718,7 +739,7 @@ fi
 #
 debug "Bash version: $BASH_VERSION"
 debug "Machine type: $MACHTYPE"
-debug "Program version: $VERSION"
+debug "Program version: $CURRENT_VERSION"
 debug "Program args: ${ARGUMENTS[*]}"
 
 #
@@ -728,7 +749,10 @@ for positional in "${POSITIONAL[@]}"; do
 	debug "main(): Positional argument: $positional"
 
 	readarray -t find_parameters < <(create_find_parameters "$positional")
-	[[ ! ${find_parameters[*]} ]] && continue
+	if [[ ! ${find_parameters[*]} ]]; then
+		debug "main(): No find parameters generated for $positional, skipping."
+		continue
+	fi
 
 	debug "main(): Find parameters: ${find_parameters[*]}"
 	if [[ ${#find_parameters[@]} -ne 2 ]]; then
@@ -736,6 +760,11 @@ for positional in "${POSITIONAL[@]}"; do
 	else
 		readarray -t FILES < <(find_files "${find_parameters[@]}")
 		debug "main(): ${#FILES[@]} files found for $positional: $(printf '\n%s' "${FILES[@]}")"
+		if [[ ${#FILES[@]} -eq 0 ]]; then
+			debug "main(): No files found for $positional, skipping."
+			error_log "ERROR: No files found for \"$positional\""
+			continue
+		fi
 	fi
 
 	i=1
