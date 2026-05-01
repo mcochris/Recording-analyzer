@@ -24,73 +24,20 @@
 # ╰──────────────────────────────────────────────────────────────────────────────╯
 
 #
-# Function to log errors to the ERROR_LOG file.
+# Build a regex pattern for find command based on the list of extensions.
 #
-function error_log() {
-	echo "$1" >> "$ERROR_LOG"
-}
-
-#
-# Cleanup function to display errors and remove temporary files on exit.
-#
-function cleanup() {
-	tput cnorm 1>&2
-	if [[ -s "$ERROR_LOG" ]]; then
-		echo -e "\nErrors encountered during processing:" >&2
-		cat "$ERROR_LOG" >&2
-	fi
-	rm --force "$ERROR_LOG"
-	rm --force "$RESULTS_FILE"
-}
-
-#
-# Debug function to print messages when DEBUG mode is enabled.
-#
-function debug() {
-	# don't make this a one-liner
-    if [[ "$DEBUG" == true ]]; then
-		echo "DEBUG [${BASH_LINENO[0]}]: $*" >&2
-    fi
-}
-
-#
-# Utility function to check if a value is in an array.
-#
-function in_array() {
-	local needle="$1" item="$2"
-	shift 1
-	for item in "$@"; do
-		[[ "$item" == "$needle" ]] && return 0
-	done
-	return 1
-}
-
-#
-# Validate that the provided extension is in the list of supported audio formats.
-#
-function is_extension_valid() {
-	local ext="$1"
-	[[ -z "$ext" ]] && return 1
-	in_array "$ext" "${DEFAULT_EXTENSIONS[@]}" && return 0
-	return 1
-}
-
-#
-# Validate all extensions in the users --extensions option.
-#
-function validate_extensions() {
-	local ext
+function build_extension_list() {
+	local ext list=""
 	for ext in "${EXTENSIONS[@]}"; do
-		if ! is_extension_valid "$ext"; then
-			error_log "ERROR: unrecognized extension: $ext"
-		fi
+		list+="$ext\|"
 	done
+	echo "${list%\\|}"  # strip trailing \|
 }
 
 #
 # Check for updates by fetching the latest version string from the GitHub repository.
 #
-check_for_update() {
+function check_for_update() {
     local latest_version
 
     if [[ -f "$CACHE_FILE" ]]; then
@@ -118,162 +65,28 @@ check_for_update() {
     fi
 }
 
+#
+# Cleanup function to display errors and remove temporary files on exit.
+#
+function cleanup() {
+	tput cnorm 1>&2
+	if [[ -e "$ERROR_LOG" && $(wc -l < "$ERROR_LOG") -gt 0 ]]; then
+		echo "Errors encountered during processing:" >&2
+		cat "$ERROR_LOG" >&2
+	fi
+	rm --force "$ERROR_LOG" >&2
+	rm --force "$RESULTS_FILE" >&2
+}
+
+#
+# Compare the latest version with the current version and notify the user if an update is available.
+#
 function compare_versions() {
     local latest="$1"
     if [[ "$latest" != "$CURRENT_VERSION" ]]; then
         echo "Update available: $latest (you have $CURRENT_VERSION)"
         echo "https://github.com/mcochris/Recording-analyzer/releases/latest"
     fi
-}
-
-#
-# Build a regex pattern for find command based on the list of extensions.
-#
-function build_extension_list() {
-	local ext list=""
-	for ext in "${EXTENSIONS[@]}"; do
-		list+="$ext\|"
-	done
-	echo "${list%\\|}"  # strip trailing \|
-}
-
-#
-#	Convert a value to an integer if it's a valid number, otherwise return empty string.
-#
-function integerize() {
-    if [[ "$1" =~ ^-?[0-9]+(\.[0-9]+)?$ ]]; then
-        printf "%.0f" "$1"
-    else
-        echo ""
-    fi
-}
-
-#
-# Extract metadata duration in seconds, rounded to nearest whole number.
-#
-function get_duration() {
-	echo "$FFPROBE" | jq -r '.format.duration // empty' | awk '{printf "%.0f", $1}'
-}
-
-#
-# Extract channel statistics from ffmpeg astats filter output.
-#
-function get_channel_stats() {
-	local file="$1" channel stat field
-	local -n _channel_stats="$2" _num_channels="$3"
-
-	if [[ -z "$file" ]]; then
-		error_log "ERROR: get_channel_stats() requires a file and two output variables"
-		return 1
-	fi
-
-	function failed() {
-		local channel
-		for channel in 1 2; do
-			_channel_stats["$channel:Peak level dB"]=""
-			_channel_stats["$channel:Noise floor dB"]=""
-			_channel_stats["$channel:Crest factor"]=""
-		done
-		_num_channels=0
-	}
-
-	local ASTATS
-	ASTATS=$(ffmpeg -hide_banner -i "$file" -af "astats" -f null - 2>&1) \
-		|| { error_log "ERROR: ffmpeg failed to process \"$file\""; failed; return 1;}
-	readonly ASTATS
-
-	# Detect number of channels.
-	_num_channels=$(grep --count "Channel: [0-9]" <<< "$ASTATS") \
-		|| { error_log "ERROR: failed to detect number of channels in \"$file\""; failed; return 1;}
-
-	debug "Detected $_num_channels channels in \"$file\""
-
-	_num_channels=$(integerize "$_num_channels")
-	[[ -z "$_num_channels" || "$_num_channels" -le 0 ]] \
-		&& { error_log "ERROR: invalid number of channels detected in \"$file\""; failed; return 1; }
-
-	for channel in 1 2; do
-		for field in "Peak level dB" "Noise floor dB" "Crest factor"; do
-			stat=$(awk -v ch="Channel: $channel" -v fld="$field" '
-				$0 ~ ch { in_block=1; next }
-				in_block && /Channel:/ { in_block=0 }
-				in_block && index($0, fld) { print $NF; exit }' <<< "$ASTATS")
-		    # shellcheck disable=SC2034
-		    if [[ -n "$stat" ]]; then
-				_channel_stats["$channel:$field"]=$(printf "%.2f" "$stat")
-			else
-				_channel_stats["$channel:$field"]=""
-			fi
-
-			debug "Channel $channel $field for \"$file\": ${_channel_stats["$channel:$field"]}"
-		done
-	done
-}
-
-#
-# Extract the loudness statistics from the ffmpeg loudnorm option.
-#
-function get_loudness() {
-	local file="$1" loudness integrated_loudness true_peak loudness_range
-	local -n _loudness_stats="$2"
-
-	[[ -z "$file" ]] && { error_log "ERROR: get_loudness() requires a file"; return 1; }
-
-	loudness=$(ffmpeg -hide_banner -i "$file" -af loudnorm=print_format=json -f null - 2>&1 | awk '/^{/,/^}/') \
-		|| { error_log "ERROR: ffmpeg failed to run loudnorm on \"$file\""; return 1; }
-
-	integrated_loudness=$(echo "$loudness" | grep "input_i" | cut -d: -f2 | tr -d '":, ')
-	true_peak=$(echo "$loudness" | grep "input_tp" | cut -d: -f2 | tr -d '":, ')
-	loudness_range=$(echo "$loudness" | grep "input_lra" | cut -d: -f2 | tr -d '":, ')
-
-	_loudness_stats=([0]="$integrated_loudness" [1]="$true_peak" [2]="$loudness_range")
-
-	debug "Loudness stats for $file: ${_loudness_stats[*]}"
-}
-
-#
-# Get stereo correlation by averaging the output of the aphasemeter filter.
-#
-function get_average_phase() {
-	local file="$1" average_phase
-
-	[[ -z "$file" ]] && { error_log "ERROR: get_average_phase() requires a file"; return 1; }
-
-	average_phase=$(ffmpeg -hide_banner -i "$file" -af "aphasemeter=video=0,ametadata=print:file=-" -f null - 2> /dev/null \
-		| grep 'lavfi.aphasemeter.phase' \
-		| awk -F '=' '{ sum+=$2; n++ } END { if (n>0) printf "%.2f", sum/n; else print "" }')
-
-	debug "Average phase for $file: $average_phase"
-
-	echo "$average_phase"
-}
-
-#
-# Extract metadata tags from ffprobe output.
-#
-function get_metadata() {
-	local file="$1" field="" FFPROBE=""
-	local -n _metadata="$2"
-
-	[[ -z "$file" ]] && { error_log "ERROR: get_metadata() requires a filename"; return 1; }
-
-	FFPROBE=$(ffprobe -v quiet -print_format json -show_format -show_streams "$file" 2>&1) \
-		|| { error_log "ERROR: ffprobe failed to process \"$file\""; return 1; }
-	readonly FFPROBE
-
-	for field in "GENRE" "ARTIST" "ALBUM" "track" "DATE"; do
-		_metadata["$field"]=$(jq -r --arg field "$field" '.format.tags[$field] // empty' <<< "$FFPROBE")
-		[[ -z "${_metadata["$field"]}" ]] && _metadata["$field"]=""
-		debug "Metadata $field for \"$file\": ${_metadata["$field"]}"
-	done
-
-	for field in "sample_rate" "bit_rate" "bits_per_raw_sample"; do
-		_metadata["$field"]=$(jq -r --arg f "$field" '.streams[0][$f] // .format[$f] // empty' <<< "$FFPROBE")
-		debug "Metadata $field for \"$file\": ${_metadata["$field"]}"
-	done
-
-	_metadata["duration"]=$(jq -r '.format.duration // empty' <<< "$FFPROBE" | awk '{printf "%.0f", $1}')
-	debug "Metadata duration for \"$file\": ${_metadata["duration"]}"
 }
 
 #
@@ -323,6 +136,23 @@ function create_find_parameters() {
 }
 
 #
+# Debug function to print messages when DEBUG mode is enabled.
+#
+function debug() {
+	# don't make this a one-liner
+    if [[ "$DEBUG" == true ]]; then
+		echo "DEBUG [${BASH_LINENO[0]}]: $*" >&2
+    fi
+}
+
+#
+# Function to log errors to the ERROR_LOG file.
+#
+function error_log() {
+	echo "$1" >> "$ERROR_LOG"
+}
+
+#
 # Find files matching the criteria using the find command, with options for recursion and extension filtering.
 #
 function find_files() {
@@ -355,30 +185,6 @@ function find_files() {
 		debug "find_files(): Files found matching criteria in \"$dir\" with base \"$base\": $(printf '\n%s' "${files[@]}")"
 		printf '%s\n' "${files[@]}"
 	fi
-}
-
-#
-# Spinner function to show progress while long-running task is executing.
-#
-function spinner() {
-	local pid="$1"
-	local message="$2"
-	# shellcheck disable=SC1003
-	local frames=('-' '\' '|' '/')
-	local i=0
-
-	# Hide cursor
-	tput civis 1>&2
-
-	while kill -0 "$pid" 2> /dev/null; do
-		printf "\r%s... %s" "${message:0:$((COLS-5))}" "${frames[$i]}" 1>&2
-		i=$(( (i + 1) % ${#frames[@]} ))
-		sleep 0.1
-	done
-
-	# Clear the spinner line and restore cursor
-	printf "\r\033[K" 1>&2
-	tput cnorm 1>&2
 }
 
 #
@@ -512,6 +318,203 @@ function generate_report() {
 		debug "generate_report(): Finished generating JSON report for file: \"$file\", JSON object: $json_object"
 		printf '%s\n' "$json_object"
 	fi
+}
+
+#
+# Get stereo correlation by averaging the output of the aphasemeter filter.
+#
+function get_average_phase() {
+	local file="$1" average_phase
+
+	[[ -z "$file" ]] && { error_log "ERROR: get_average_phase() requires a file"; return 1; }
+
+	average_phase=$(ffmpeg -hide_banner -i "$file" -af "aphasemeter=video=0,ametadata=print:file=-" -f null - 2> /dev/null \
+		| grep 'lavfi.aphasemeter.phase' \
+		| awk -F '=' '{ sum+=$2; n++ } END { if (n>0) printf "%.2f", sum/n; else print "" }')
+
+	debug "Average phase for $file: $average_phase"
+
+	echo "$average_phase"
+}
+
+#
+# Extract channel statistics from ffmpeg astats filter output.
+#
+function get_channel_stats() {
+	local file="$1" channel stat field
+	local -n _channel_stats="$2" _num_channels="$3"
+
+	if [[ -z "$file" ]]; then
+		error_log "ERROR: get_channel_stats() requires a file and two output variables"
+		return 1
+	fi
+
+	function failed() {
+		local channel
+		for channel in 1 2; do
+			_channel_stats["$channel:Peak level dB"]=""
+			_channel_stats["$channel:Noise floor dB"]=""
+			_channel_stats["$channel:Crest factor"]=""
+		done
+		_num_channels=0
+	}
+
+	local ASTATS
+	ASTATS=$(ffmpeg -hide_banner -i "$file" -af "astats" -f null - 2>&1) \
+		|| { error_log "ERROR: ffmpeg failed to process \"$file\""; failed; return 1;}
+	readonly ASTATS
+
+	# Detect number of channels.
+	_num_channels=$(grep --count "Channel: [0-9]" <<< "$ASTATS") \
+		|| { error_log "ERROR: failed to detect number of channels in \"$file\""; failed; return 1;}
+
+	debug "get_channel_stats(): Detected $_num_channels channels in \"$file\""
+
+	_num_channels=$(integerize "$_num_channels")
+	[[ -z "$_num_channels" || "$_num_channels" -le 0 ]] \
+		&& { error_log "ERROR: invalid number of channels detected in \"$file\""; failed; return 1; }
+
+	for channel in 1 2; do
+		for field in "Peak level dB" "Noise floor dB" "Crest factor"; do
+			stat=$(awk -v ch="Channel: $channel" -v fld="$field" '
+				$0 ~ ch { in_block=1; next }
+				in_block && /Channel:/ { in_block=0 }
+				in_block && index($0, fld) { print $NF; exit }' <<< "$ASTATS")
+		    # shellcheck disable=SC2034
+		    if [[ -n "$stat" ]]; then
+				_channel_stats["$channel:$field"]=$(printf "%.2f" "$stat")
+			else
+				_channel_stats["$channel:$field"]=""
+			fi
+
+			debug "get_channel_stats(): Channel $channel $field for \"$file\": ${_channel_stats["$channel:$field"]}"
+		done
+	done
+}
+
+#
+# Extract metadata duration in seconds, rounded to nearest whole number.
+#
+function get_duration() {
+	echo "$FFPROBE" | jq -r '.format.duration // empty' | awk '{printf "%.0f", $1}'
+}
+
+#
+# Extract the loudness statistics from the ffmpeg loudnorm option.
+#
+function get_loudness() {
+	local file="$1" loudness integrated_loudness true_peak loudness_range
+	local -n _loudness_stats="$2"
+
+	[[ -z "$file" ]] && { error_log "ERROR: get_loudness() requires a file"; return 1; }
+
+	loudness=$(ffmpeg -hide_banner -i "$file" -af loudnorm=print_format=json -f null - 2>&1 | awk '/^{/,/^}/') \
+		|| { error_log "ERROR: ffmpeg failed to run loudnorm on \"$file\""; return 1; }
+
+	integrated_loudness=$(echo "$loudness" | grep "input_i" | cut -d: -f2 | tr -d '":, ')
+	true_peak=$(echo "$loudness" | grep "input_tp" | cut -d: -f2 | tr -d '":, ')
+	loudness_range=$(echo "$loudness" | grep "input_lra" | cut -d: -f2 | tr -d '":, ')
+
+	_loudness_stats=([0]="$integrated_loudness" [1]="$true_peak" [2]="$loudness_range")
+
+	debug "Loudness stats for $file: ${_loudness_stats[*]}"
+}
+
+#
+# Extract metadata tags from ffprobe output.
+#
+function get_metadata() {
+	local file="$1" field="" FFPROBE=""
+	local -n _metadata="$2"
+
+	[[ -z "$file" ]] && { error_log "ERROR: get_metadata() requires a filename"; return 1; }
+
+	FFPROBE=$(ffprobe -v quiet -print_format json -show_format -show_streams "$file" 2>&1) \
+		|| { error_log "ERROR: ffprobe failed to process \"$file\""; return 1; }
+	readonly FFPROBE
+
+	for field in "GENRE" "ARTIST" "ALBUM" "track" "DATE"; do
+		_metadata["$field"]=$(jq -r --arg field "$field" '.format.tags[$field] // empty' <<< "$FFPROBE")
+		[[ -z "${_metadata["$field"]}" ]] && _metadata["$field"]=""
+		debug "Metadata $field for \"$file\": ${_metadata["$field"]}"
+	done
+
+	for field in "sample_rate" "bit_rate" "bits_per_raw_sample"; do
+		_metadata["$field"]=$(jq -r --arg f "$field" '.streams[0][$f] // .format[$f] // empty' <<< "$FFPROBE")
+		debug "Metadata $field for \"$file\": ${_metadata["$field"]}"
+	done
+
+	_metadata["duration"]=$(jq -r '.format.duration // empty' <<< "$FFPROBE" | awk '{printf "%.0f", $1}')
+	debug "Metadata duration for \"$file\": ${_metadata["duration"]}"
+}
+
+#
+# Utility function to check if a value is in an array.
+#
+function in_array() {
+	local needle="$1" item="$2"
+	shift 1
+	for item in "$@"; do
+		[[ "$item" == "$needle" ]] && return 0
+	done
+	return 1
+}
+
+#
+#	Convert a value to an integer if it's a valid number, otherwise return empty string.
+#
+function integerize() {
+    if [[ "$1" =~ ^-?[0-9]+(\.[0-9]+)?$ ]]; then
+        printf "%.0f" "$1"
+    else
+        echo ""
+    fi
+}
+
+#
+# Validate that the provided extension is in the list of supported audio formats.
+#
+function is_extension_valid() {
+	local ext="$1"
+	[[ -z "$ext" ]] && return 1
+	in_array "$ext" "${DEFAULT_EXTENSIONS[@]}" && return 0
+	return 1
+}
+
+#
+# Spinner function to show progress while long-running task is executing.
+#
+function spinner() {
+	local pid="$1"
+	local message="$2"
+	# shellcheck disable=SC1003
+	local frames=('-' '\' '|' '/')
+	local i=0
+
+	# Hide cursor
+	tput civis 1>&2
+
+	while kill -0 "$pid" 2> /dev/null; do
+		printf "\r%s... %s" "${message:0:$((COLS-5))}" "${frames[$i]}" 1>&2
+		i=$(( (i + 1) % ${#frames[@]} ))
+		sleep 0.1
+	done
+
+	# Clear the spinner line and restore cursor
+	printf "\r\033[K" 1>&2
+	tput cnorm 1>&2
+}
+
+#
+# Validate all extensions in the users --extensions option.
+#
+function validate_extensions() {
+	local ext
+	for ext in "${EXTENSIONS[@]}"; do
+		if ! is_extension_valid "$ext"; then
+			error_log "ERROR: unrecognized extension: $ext"
+		fi
+	done
 }
 
 # ╭──────────────────────────────────────────────────────────────────────────────╮
