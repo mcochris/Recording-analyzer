@@ -180,7 +180,7 @@ function find_files() {
 
 	if [[ ${#files[@]} -eq 0 ]]; then
 		debug "find_files(): No files found matching criteria in \"$dir\" with base \"$base\""
-		return 1
+		return
 	else
 		debug "find_files(): Files found matching criteria in \"$dir\" with base \"$base\": $(printf '\n%s' "${files[@]}")"
 		printf '%s\n' "${files[@]}"
@@ -564,7 +564,7 @@ done
 CACHE_FILE="${XDG_CACHE_HOME:-$HOME/.cache}/$THIS_PGM/version_check"
 CACHE_TTL=86400
 readonly CURRENT_VERSION="2.0.0"
-readonly CACHE_FILE CACHE_TTL DEFAULT_EXTENSIONS=(aac ac3 aif aiff amr caf dsf dff flac m4a mp3 ogg opus pcm wav wma)
+readonly CACHE_FILE CACHE_TTL DEFAULT_EXTENSIONS=(aac ac3 aif aiff amr caf flac m4a mp3 ogg opus pcm wav wma)
 EXTENSIONS=("${DEFAULT_EXTENSIONS[@]}")
 DEBUG=false
 RECURSE=false
@@ -761,7 +761,14 @@ for positional in "${POSITIONAL[@]}"; do
 	if [[ ${#find_parameters[@]} -ne 2 ]]; then
 		FILES=("$positional")
 	else
-		readarray -t FILES < <(find_files "${find_parameters[@]}")
+		FOUND_FILES=$(mktemp)
+		find_files "${find_parameters[@]}" > "$FOUND_FILES" 2>> "$ERROR_LOG" &
+		TASK_PID=$!
+		[[ "$QUIET" == "false" ]] && spinner $TASK_PID "Looking for files on \"$positional\""
+		wait $TASK_PID
+		readarray -t FILES < "$FOUND_FILES"
+		rm -f "$FOUND_FILES" 2> /dev/null
+
 		debug "main(): ${#FILES[@]} files found for $positional: $(printf '\n%s' "${FILES[@]}")"
 		if [[ ${#FILES[@]} -eq 0 ]]; then
 			debug "main(): No files found for $positional, skipping."
