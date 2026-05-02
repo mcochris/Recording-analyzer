@@ -35,17 +35,16 @@ Optional flags:
 # -----------------------------
 AUDIO_FILE=""
 DEBUG=""
-SHOW_HELP=""
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
         -d|--debug)
-            DEBUG="$1"
+            DEBUG=true
             shift
             ;;
         -h|--help)
-            SHOW_HELP="true"
-            shift
+            echo "$HELP"
+			exit 0
             ;;
         *)
 			AUDIO_FILE="$1"
@@ -54,16 +53,14 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-REALPATH_AUDIO_FILE="$(realpath "$AUDIO_FILE")"
-readonly AUDIO_FILE DEBUG SHOW_HELP REALPATH_AUDIO_FILE
+REALPATH_AUDIO_FILE="$(robust_realpath "$AUDIO_FILE")"
+readonly AUDIO_FILE DEBUG REALPATH_AUDIO_FILE
 
 debug "Audio file: $AUDIO_FILE"
 debug "Debug mode: $DEBUG"
 debug "Audio file (realpath): $REALPATH_AUDIO_FILE"
 
-[[ -n "$SHOW_HELP" ]] && { echo "$HELP"; exit 0; }
-
-check_audio_file "$AUDIO_FILE"
+check_audio_file "$REALPATH_AUDIO_FILE"
 
 [[ -x "$SCRIPT_DIR/$RECORDING_ANALYZER_PROGRAM" ]] || { echo "Error: Main script not found or not executable: $RECORDING_ANALYZER_PROGRAM"; exit 1; }
 
