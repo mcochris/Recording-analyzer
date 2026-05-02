@@ -565,7 +565,7 @@ done
 #
 CACHE_FILE="${XDG_CACHE_HOME:-$HOME/.cache}/$THIS_PGM/version_check"
 CACHE_TTL=86400
-readonly CURRENT_VERSION="v2.0.0"
+readonly CURRENT_VERSION="v2.0.1"
 readonly CACHE_FILE CACHE_TTL DEFAULT_EXTENSIONS=(aac ac3 aif aiff amr caf flac m4a mp3 ogg opus pcm wav wma)
 EXTENSIONS=("${DEFAULT_EXTENSIONS[@]}")
 DEBUG=false
