@@ -176,3 +176,35 @@ function valid_python_format() {
 			;;
 	esac
 }
+
+function robust_realpath() {
+    local input="$1"
+
+    # --- 1. Strip surrounding quotes if they are LITERAL characters in the argument ---
+    # This handles the unusual case where quote chars survived shell processing,
+    # e.g. the user wrapped in single quotes: ./verify.sh '"~/Music/file.flac"'
+    if [[ "$input" =~ ^\'(.*)\'$ || "$input" =~ ^\"(.*)\"$ ]]; then
+        input="${BASH_REMATCH[1]}"
+    fi
+
+    # --- 2. Expand tilde manually (safe, no eval, no glob exposure) ---
+    case "$input" in
+        '~')        input="$HOME" ;;
+        '~/'*)      input="$HOME/${input:2}" ;;   # ~/...  → /home/user/...
+        '~'*)       # ~otheruser/... form
+                    local uname="${input%%/*}"     # grab ~username
+                    uname="${uname:1}"             # strip leading ~
+                    local rest="${input#*/}"       # everything after first /
+                    local uhome
+                    uhome=$(getent passwd "$uname" 2>/dev/null | cut -d: -f6)
+                    if [[ -n "$uhome" ]]; then
+                        input="$uhome/$rest"
+                    fi
+                    ;;
+        # No tilde — leave input unchanged
+    esac
+
+    # --- 3. Resolve to canonical absolute path ---
+    # --                          : stops flag parsing, safe for paths starting with -
+    realpath -- "$input"
+}
