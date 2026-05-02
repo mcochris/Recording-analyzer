@@ -74,8 +74,8 @@ function cleanup() {
 		echo "Errors encountered during processing:" >&2
 		cat "$ERROR_LOG" >&2
 	fi
-	rm --force "$ERROR_LOG" >&2
-	rm --force "$RESULTS_FILE" >&2
+	rm --force "$ERROR_LOG" 2> /dev/null
+	rm --force "$RESULTS_FILE" 2> /dev/null
 }
 
 #
@@ -675,8 +675,8 @@ while [[ $# -gt 0 ]]; do
 			;;
 		-e|--extensions)
 			if (($# < 2)) || [[ -z ${2:-} ]]; then
-			error_log "Error: --extensions requires an argument"
-			exit 1
+				error_log "Error: --extensions requires an argument"
+				exit 1
 			fi
 			read -r -a EXTENSIONS <<< "$2"
 			validate_extensions
