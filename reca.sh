@@ -290,6 +290,8 @@ function generate_report() {
 
 	if [[ "$JSON_OUTPUT" == "true" ]]; then
 		debug "generate_report(): Generating JSON report for \"$file\""
+		[[ "${channel_stats["1:Noise floor dB"]}" == "-inf" ]] && channel_stats["1:Noise floor dB"]=-999
+		[[ "${channel_stats["2:Noise floor dB"]}" == "-inf" ]] && channel_stats["2:Noise floor dB"]=-999
 		json_object="$(jq -n \
 			--argjson 	id					"$i"											\
 			--arg		path				"$(dirname "$(realpath "$file")")"				\
