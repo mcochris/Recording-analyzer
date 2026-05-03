@@ -519,6 +519,68 @@ function validate_extensions() {
 	done
 }
 
+#
+# Show usage/help text.
+#
+function help() {
+	echo -e "\e[38;5;214m
+╭──────────────────────────────────────────────────────────────────────────────╮
+│                                                                              │
+│                        Welcome to Recording Analyzer!                        │
+│                                                                              │
+╰──────────────────────────────────────────────────────────────────────────────╯
+\e[0m
+Usage:
+	$THIS_PGM \"<audio_file>\" ...
+	- or -
+	$THIS_PGM \"<directory>\" ...
+
+This program is used to analyze audio files and extract various statistics.
+The script provides insights into the quality and characteristics of the
+recording, which can be useful for audio engineers, musicians, and anyone
+interested in understanding the technical aspects of their audio files.
+
+JSON output format is available for easy integration with other tools or for
+further processing. Metadata fields can also be included in the output for a
+more comprehensive analysis. Upload the JSON output of your audio files to
+https://recording-analyzer.mcochris.com/ to view an interactive visualization
+of the statistics, create playlists and spreadsheets based on the analysis
+results.
+
+Options:
+  -d, --debug       Enable debug mode to show detailed processing information
+  -e, --extensions  Specify a custom list of audio file extensions to analyze
+  -h, --help        Show this help message and exit
+  -j, --json        Output results in JSON format (default: human-readable text)
+  -l, --limit N     Limit processing to the first N audio files found
+                    (default: no limit)
+  -m, --metadata    Include metadata fields in output
+  -q, --quiet       Suppress progress spinner and other non-essential output
+  -r, --recurse     Recursively search directories for audio files
+  -v, --version     Show program version and exit
+
+  Examples:
+	# Analyze a single file with human-readable output
+	$THIS_PGM \"~/Music/track.flac\"
+
+	# Analyze all music files in a directory recursively
+	$THIS_PGM --recurse \"~/Music\"
+
+	# Analyze files and directories with metadata included
+	$THIS_PGM --metadata \"~/Music/track.flac\" \"../song.mp3\"
+
+	# Analyze music files and redirect JSON output to a file for use with
+	#  the web page at https://recording-analyzer.mcochris.com/
+	$THIS_PGM --json --metadata \"~/Music/*.flac\" > analysis_results.json
+
+	For more details, please visit the GitHub repository:
+	https://github.com/mcochris/Recording-analyzer
+
+	Questions, issues, suggestions? Please open a support ticket at:
+	https://github.com/mcochris/Recording-analyzer/issues
+"
+}
+
 # ╭──────────────────────────────────────────────────────────────────────────────╮
 # │                                                                              │
 # │             End of function definitions, main logic starts here.             │
@@ -603,65 +665,6 @@ trap cleanup EXIT
 #
 [[ $# -eq 0 ]] && { help; exit 1; }
 
-function help() {
-	echo -e "\e[38;5;214m
-╭──────────────────────────────────────────────────────────────────────────────╮
-│                                                                              │
-│                        Welcome to Recording Analyzer!                        │
-│                                                                              │
-╰──────────────────────────────────────────────────────────────────────────────╯
-\e[0m
-Usage:
-	$THIS_PGM \"<audio_file>\" ...
-	- or -
-	$THIS_PGM \"<directory>\" ...
-
-This program is used to analyze audio files and extract various statistics.
-The script provides insights into the quality and characteristics of the
-recording, which can be useful for audio engineers, musicians, and anyone
-interested in understanding the technical aspects of their audio files.
-
-JSON output format is available for easy integration with other tools or for
-further processing. Metadata fields can also be included in the output for a
-more comprehensive analysis. Upload the JSON output of your audio files to
-https://recording-analyzer.mcochris.com/ to view an interactive visualization
-of the statistics, create playlists and spreadsheets based on the analysis
-results.
-
-Options:
-  -d, --debug       Enable debug mode to show detailed processing information
-  -e, --extensions  Specify a custom list of audio file extensions to analyze
-  -h, --help        Show this help message and exit
-  -j, --json        Output results in JSON format (default: human-readable text)
-  -l, --limit N     Limit processing to the first N audio files found
-                    (default: no limit)
-  -m, --metadata    Include metadata fields in output
-  -q, --quiet       Suppress progress spinner and other non-essential output
-  -r, --recurse     Recursively search directories for audio files
-  -v, --version     Show program version and exit
-
-  Examples:
-	# Analyze a single file with human-readable output
-	$THIS_PGM \"~/Music/track.flac\"
-
-	# Analyze all music files in a directory recursively
-	$THIS_PGM --recurse \"~/Music\"
-
-	# Analyze files and directories with metadata included
-	$THIS_PGM --metadata \"~/Music/track.flac\" \"../song.mp3\"
-
-	# Analyze music files and redirect JSON output to a file for use with
-	#  the web page at https://recording-analyzer.mcochris.com/
-	$THIS_PGM --json --metadata \"~/Music/*.flac\" > analysis_results.json
-
-	For more details, please visit the GitHub repository:
-	https://github.com/mcochris/Recording-analyzer
-
-	Questions, issues, suggestions? Please open a support ticket at:
-	https://github.com/mcochris/Recording-analyzer/issues
-"
-}
-
 #
 # Loop through options and arguments, handling known flags and collecting positional arguments for file processing.
 #
@@ -711,7 +714,7 @@ while [[ $# -gt 0 ]]; do
 			shift
 			;;
 		-v|--version)
-			echo "$THIS_PGM $VERSION"
+			echo "$THIS_PGM $CURRENT_VERSION"
 			exit 0
 			;;
 		--)
