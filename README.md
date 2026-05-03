@@ -52,13 +52,19 @@ Bash is already installed on most Linux systems.
 In these examples we assume that the directory $HOME/.local/bin exists and is in your $PATH. This is usually the case on most linux systems. Adjust as needed.
 
 Cut-n-paste from <https://raw.githubusercontent.com/mcochris/Recording-analyzer/refs/heads/main/reca.sh>
-to $HOME/.local/bin/reca.sh
+to $HOME/.local/bin/reca.sh, then
+
+```bash
+cd $HOME/.local/bin
+chmod +x reca.sh
+```
 
 or
 
 ```bash
 cd $HOME/.local/bin
 curl --remote-name https://raw.githubusercontent.com/mcochris/Recording-analyzer/main/reca.sh
+chmod +x reca.sh
 ```
 
 or if you're familiar with the git version control system:
@@ -68,6 +74,7 @@ cd $HOME
 git clone --depth 1 https://github.com/mcochris/Recording-analyzer.git
 cd $HOME/.local/bin
 ln -s $HOME/Recording-analyzer/reca.sh .
+chmod +x reca.sh
 ```
 
 ## ▶️ Usage
@@ -130,7 +137,8 @@ reca.sh --metadata --json --recurse "/home/user/Music"
 chris@studio:~/audio$ reca.sh "Computer World.flac"
 
 Audio Analysis: "Computer World.flac"
-🭶🭶🭶🭶🭶🭶🭶🭶🭶🭶🭶🭶🭶🭶🭶🭶🭶🭶🭶🭶🭶🭶🭶
+=====================================
+
 Left Channel:
   Peak Level:     -0.50 dBFS
   Noise Floor:    -inf dBFS
@@ -156,7 +164,8 @@ Loudness (EBU R128):
 chris@studio:~/audio$ reca.sh --metadata "The Things We Do for Love.flac"
 
 Audio Analysis: "The Things We Do for Love.flac"
-🭶🭶🭶🭶🭶🭶🭶🭶🭶🭶🭶🭶🭶🭶🭶🭶🭶🭶🭶🭶🭶🭶🭶🭶🭶🭶🭶🭶🭶🭶
+================================================
+
 Metadata:
   Genre:           Rock
   Artist:          10cc
