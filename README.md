@@ -126,10 +126,16 @@ reca.sh --metadata --json --recurse "/home/user/Music"
 
 ```text
 -d, --debug       Enable debug mode to show detailed processing information
--e, --extensions  Specify a custom list of audio file extensions to analyze. For example, if you supply '-e "m4a flac"' on the command line, only files with the .m4a and .flac file will be searched for and analyzed. The default is to search for and process all the supported extension noted in the "Features" section above.
+-e, --extensions  Specify a custom list of audio file extensions to analyze.
+                  For example, if you supply '-e "m4a flac"' on the command
+                  line, only files with the .m4a and .flac file will be
+                  searched for and analyzed. The default is to search for
+                  and process all the supported extension noted in the
+                  "Features" section above.
 -h, --help        Show a help message and exit
 -j, --json        Output results in JSON format (default: human-readable text)
--l, --limit N     Limit processing to the first N audio files found (default: no limit)
+-l, --limit N     Limit processing to the first N audio files found
+                  (default: no limit)
 -m, --metadata    Include metadata fields in output
 -q, --quiet       Suppress progress spinner and other non-essential output
 -r, --recurse     Recursively search directories for audio files
