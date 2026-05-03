@@ -30,7 +30,9 @@ sudo mount -t cifs //192.168.1.100/sharename /mnt/nas -o credentials=~/.cifs.txt
 
 Where "192.168.1.100" is the IP address of your NAS and "sharename" is the name you assigned to the drive on your NAS.
 
-Once the NAS drive is mapped, you should be able to see your files in the WSL console at /mnt/nas
+Once the NAS drive is mapped, you should be able to see your files in your terminal at /mnt/nas
+
+If the mount fails, try adding "vers=3.0" (or "vers=2.0" for older devices) to the options.
 
 The only problem with mounting the NAS this way is that it won't be available after you reboot your computer and you'll have to repeat step 3. If you want, you can...
 
@@ -51,11 +53,13 @@ sudo nano /etc/fstab
 
 Add the following line to the end of the file
 
-```bash
+```text
 //192.168.1.100/sharename  /mnt/nas  cifs  credentials=/home/yourusername/.cifs.txt,uid=myuid,gid=mygid  0  0
 ```
 
-Where "192.168.1.100" is the IP address of your NAS, "sharename" is the name you assigned to the drive on your NAS, "myuid" is your user ID, and "mygid" is your user group. Now your NAS will automatically mount every time you start your computer.
+Where "192.168.1.100" is the IP address of your NAS, "sharename" is the name you assigned to the drive on your NAS. Replace myuid with the number from id -u and mygid with the number from id -g. Now your NAS will automatically mount every time you start your computer.
+
+If the mount fails, try adding "vers=3.0" (or "vers=2.0" for older devices) to the options.
 
 ## Unmounting the drive
 

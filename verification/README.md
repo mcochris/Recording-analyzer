@@ -6,6 +6,8 @@ Although results ideally would be identical, each tool uses slightly different a
 
 Running the verification program is optional and not part of reca.sh.
 
+The verification scripts have been tested on Ubuntu Linux and Windows WSL.
+
 ## 📦 Installation
 
 Download the zip file from <https://github.com/mcochris/Recording-analyzer>
@@ -29,6 +31,8 @@ The following programs need to be in the $PATH variable and executable from the 
 - loudgain
 - bs1770gain
 - ebumeter
+
+Use your Linux distro's install command ("sudo apt install" on Ubuntu) to install the required programs.
 
 ## ▶️ Usage
 
@@ -63,7 +67,7 @@ Right Channel:
   Crest Factor:   5.32 dB
 
 Stereo Correlation:
-  Average Phase:  0.47 degrees
+  Average Phase:  0.47
 
 Loudness (EBU R128):
   Integrated Loudness:  -18.16 LUFS

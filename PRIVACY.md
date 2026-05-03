@@ -5,19 +5,20 @@
 ## Overview
 
 recording-analyzer is a command-line tool that runs entirely on your local machine.
-It does not collect, transmit, store, or share any information about you or your files.
+It does not collect, store, or share any information about you or your files.
 
 ## What the app does
 
 - Reads audio files that you explicitly pass to it as arguments.
 - Analyzes those files locally and prints results to your terminal.
-- Automatically checks Github for latest version of the program.
+- Automatically checks GitHub for latest version of the program. Version checking sends a request to api.github.com; no personal or file data is included, but your IP address is visible to GitHub as with any HTTP request.
+- Caches the latest version number locally in ~/.cache/ to avoid redundant network requests.
 
 ## What the app does NOT do
 
 - It does not collect personal data.
 - It does not send the data it analyzes anywhere.
-- It does not create logs or gather analytics.
+- It does not gather analytics.
 - It does not display advertising.
 - It does not track usage or behavior.
 - It does not read files beyond those you explicitly provide.

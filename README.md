@@ -16,7 +16,7 @@ Most tools either:
 
 - focus on **system or room measurement** (for example, REW)
 - provide **raw ffmpeg output** without a concise summary
-- analysis plugins that output a single quality score
+- output a single quality score
 
 This tool fills that gap by providing:
 
@@ -51,8 +51,9 @@ Bash is already installed on most Linux systems.
 
 In these examples we assume that the directory $HOME/.local/bin exists and is in your $PATH. This is usually the case on most linux systems. Adjust as needed.
 
-Cut-n-paste from <https://raw.githubusercontent.com/mcochris/Recording-analyzer/refs/heads/main/reca.sh>
-to $HOME/.local/bin/reca.sh, then
+Download the file from the URL below and save it as $HOME/.local/bin/reca.sh
+
+<https://raw.githubusercontent.com/mcochris/Recording-analyzer/refs/heads/main/reca.sh>
 
 ```bash
 cd $HOME/.local/bin
@@ -77,9 +78,13 @@ ln -s $HOME/Recording-analyzer/reca.sh .
 chmod +x reca.sh
 ```
 
+## 🆙 Updating to a new version
+
+reca.sh may inform you that an updated version of the program is available. You can follow the installation steps above to download the new version. If you're a git user perform a "git pull" to update the repo.
+
 ## ▶️ Usage
 
-**NOTE:** It's important to wrap your file/directory names in double quotes to prevent Bash from expanding your entry prior to invoking reca.sh
+**NOTE:** It's important to wrap your file/directory names in double quotes to handle file names containing spaces or special characters.
 
 ```bash
 reca.sh "<audio_file>"
@@ -121,7 +126,7 @@ reca.sh --metadata --json --recurse "/home/user/Music"
 
 ```text
 -d, --debug       Enable debug mode to show detailed processing information
--e, --extensions  Specify a custom list of audio file extensions to analyze, e.g. -e "m4a flac"
+-e, --extensions  Specify a custom list of audio file extensions to analyze. For example, if you supply '-e "m4a flac"' on the command line, only files with the .m4a and .flac file will be searched for and analyzed. The default is to search for and process all the supported extension noted in the "Features" section above.
 -h, --help        Show a help message and exit
 -j, --json        Output results in JSON format (default: human-readable text)
 -l, --limit N     Limit processing to the first N audio files found (default: no limit)
@@ -246,9 +251,9 @@ a preferred range of 5–10 LU for consistency.
 
 ## 🔬 Validation
 
-You can verify the recording-analyzers' output against programs other than ffmpeg for comparison. See methodology and verification details here:
+You can verify the recording-analyzer's output against programs other than ffmpeg for comparison. See methodology and verification details here:
 
-<https://github.com/mcochris/Recording-analyzer/blob/main/verification/readme.md>
+<https://github.com/mcochris/Recording-analyzer/blob/main/verification/README.md>
 
 ## 💬 Feedback
 
