@@ -1,0 +1,57 @@
+[B]Recording Analyzer: a free, open-source audio metrics tool for Linux[/B]
+
+Ever wanted to quickly check the dynamic range, noise floor, or EBU R128 loudness of your music files without loading files into specialized software? I've built a free, open-source Linux command-line tool - also WSL-compatible - that analyzes audio files for the metrics that matter most to objective listeners:
+
+[LIST]
+[*]Peak level (dBFS)
+[*]Noise floor (dBFS)
+[*]Crest factor (dB)
+[*]Stereo correlation (phase)
+[*]Loudness (EBU R128: LUFS, LRA, true peak)
+[/LIST]
+
+[B]Sample output:[/B]
+
+[CODE]$ reca.sh "Toccata and Fugue in D Minor.flac"
+
+Audio Analysis: "Toccata and Fugue in D Minor.flac"
+===================================================
+
+Left Channel:
+  Peak Level:     -1.94 dBFS
+  Noise Floor:    -inf dBFS
+  Crest Factor:   8.91 dB
+
+Right Channel:
+  Peak Level:     -2.21 dBFS
+  Noise Floor:    -inf dBFS
+  Crest Factor:   8.06 dB
+
+Stereo Correlation:
+  Average Phase:  0.15
+
+Loudness (EBU R128):
+  Integrated Loudness:  -16.20 LUFS
+  True Peak:            -1.94 dBTP
+  Loudness Range:       18.60 LU[/CODE]
+
+[REPLACE WITH SCREENSHOT OF WEB TABLE]
+
+[B]Other features:[/B]
+[LIST]
+[*]Analyze single files or entire directories and subdirectories
+[*]Display file metadata: genre, artist, album, track, duration, year, sample rate, average bit rate, bits per sample
+[*]Upload your JSON output to [URL='https://recording-analyzer.mcochris.com/']recording-analyzer.mcochris.com[/URL] for an interactive sortable table, spreadsheet download, and custom playlist builder — filter by crest factor, loudness, or any other metric
+[*]Access music files on network-attached storage devices
+[*]Includes a verification script that cross-validates results against SoX and other tools
+[*]Your data stays yours: no ads, no personal data collected, no tracking cookies
+[*]Open source, permissive MIT license
+[/LIST]
+
+File formats supported: aac, ac3, aif, aiff, amr, caf, flac, m4a, mp3, ogg, opus, pcm, wav, wma
+
+Windows users: requires WSL, available free from the Microsoft Store.
+
+[URL='https://github.com/mcochris/Recording-analyzer']GitHub: program info and installation[/URL]
+
+If you find it useful or run into any issues, I'd love to hear from you here or via a GitHub issue. I'm particularly curious whether the metrics match what you see in your own tools.
